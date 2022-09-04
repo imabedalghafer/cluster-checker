@@ -1,23 +1,30 @@
-2022-09-04 18:28:44,738 - cluster-checker.py - INFO - ./scc_ikaweppcddb01_220823_1036
-2022-09-04 18:28:44,738 - cluster-checker.py - INFO - check for exsitence of supportconfig report itself
-2022-09-04 18:28:44,739 - cluster-checker.py - INFO - All files are there, ready to proceed to next step ..
-2022-09-04 18:28:44,750 - cluster-checker.py - INFO - Totem config is '{\n\tversion: 2\n\tsecauth: on\n\tcrypto_hash: sha1\n\tcrypto_cipher: aes256\n\tcluster_name: hacluster\n\tclear_node_high_bit: yes\n\ttoken:  30000\n\ttoken_retransmits_before_loss_const:  10\n\tjoin:  60\n\tconsensus:  36000\n\tmax_messages:  20\n\tinterface {\n\t\tringnumber: 0\n\t\tmcastport: 5405\n\t\tttl: 1\n\t}\n\ttransport: udpu\n}\n'
-2022-09-04 18:28:44,750 - cluster-checker.py - INFO - ['{', 'version: 2', 'secauth: on', 'crypto_hash: sha1', 'crypto_cipher: aes256', 'cluster_name: hacluster', 'clear_node_high_bit: yes', 'token:  30000', 'token_retransmits_before_loss_const:  10', 'join:  60', 'consensus:  36000', 'max_messages:  20', 'interface:  {', 'ringnumber: 0', 'mcastport: 5405', 'ttl: 1', '}', 'transport: udpu', '}']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['version', ' 2']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['secauth', ' on']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['crypto_hash', ' sha1']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['crypto_cipher', ' aes256']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['cluster_name', ' hacluster']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['clear_node_high_bit', ' yes']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['token', '  30000']
-2022-09-04 18:28:44,751 - cluster-checker.py - INFO - ['token_retransmits_before_loss_const', '  10']
-2022-09-04 18:28:44,752 - cluster-checker.py - INFO - ['join', '  60']
-2022-09-04 18:28:44,752 - cluster-checker.py - INFO - ['consensus', '  36000']
-2022-09-04 18:28:44,752 - cluster-checker.py - INFO - ['max_messages', '  20']
-2022-09-04 18:28:44,752 - cluster-checker.py - INFO - ['ringnumber', ' 0']
-2022-09-04 18:28:44,752 - cluster-checker.py - INFO - ['mcastport', ' 5405']
-2022-09-04 18:28:44,752 - cluster-checker.py - INFO - ['ttl', ' 1']
-2022-09-04 18:28:44,752 - cluster-checker.py - INFO - ['transport', ' udpu']
-2022-09-04 18:28:44,753 - cluster-checker.py - INFO - <class 'dict'>
-2022-09-04 18:28:44,753 - cluster-checker.py - INFO - {'version': ' 2', 'secauth': ' on', 'crypto_hash': ' sha1', 'crypto_cipher': ' aes256', 'cluster_name': ' hacluster', 'clear_node_high_bit': ' yes', 'token': '  30000', 'token_retransmits_before_loss_const': '  10', 'join': '  60', 'consensus': '  36000', 'max_messages': '  20', 'ringnumber': ' 0', 'mcastport': ' 5405', 'ttl': ' 1', 'transport': ' udpu'}
-2022-09-04 18:28:44,753 - cluster-checker.py - INFO - start checking and comparing against the documentation: https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-pacemaker 15[A]
+2022-09-04 19:10:07,682 - cluster-checker.py - INFO - /home/hema/cases/2208130040000841_Kavya/scc_cldazpdb09_220814_1128/scc_cldazpdb09_220814_1128
+2022-09-04 19:10:07,682 - cluster-checker.py - INFO - check for exsitence of supportconfig report itself
+2022-09-04 19:10:07,687 - cluster-checker.py - INFO - All files are there, ready to proceed to next step ..
+2022-09-04 19:10:07,698 - cluster-checker.py - INFO - Totem config is '{\n\tversion: 2\n\tsecauth: on\n\tcrypto_hash: sha1\n\tcrypto_cipher: aes256\n\tcluster_name: hacluster\n\tclear_node_high_bit: yes\n\ttoken: 5000\n\ttoken_retransmits_before_loss_const: 10\n\tjoin: 60\n\tconsensus: 6000\n\tmax_messages: 20\n\tinterface {\n\t\tringnumber: 0\n\t\tmcastport: 5405\n\t\tttl: 1\n\t}\n\n\ttransport: udpu\n'
+2022-09-04 19:10:07,699 - cluster-checker.py - INFO - ['{', 'version: 2', 'secauth: on', 'crypto_hash: sha1', 'crypto_cipher: aes256', 'cluster_name: hacluster', 'clear_node_high_bit: yes', 'token: 5000', 'token_retransmits_before_loss_const: 10', 'join: 60', 'consensus: 6000', 'max_messages: 20', 'interface:  {', 'ringnumber: 0', 'mcastport: 5405', 'ttl: 1', '}\n', 'transport: udpu\n']
+2022-09-04 19:10:07,699 - cluster-checker.py - INFO - ['version', ' 2']
+2022-09-04 19:10:07,700 - cluster-checker.py - INFO - ['secauth', ' on']
+2022-09-04 19:10:07,700 - cluster-checker.py - INFO - ['crypto_hash', ' sha1']
+2022-09-04 19:10:07,700 - cluster-checker.py - INFO - ['crypto_cipher', ' aes256']
+2022-09-04 19:10:07,700 - cluster-checker.py - INFO - ['cluster_name', ' hacluster']
+2022-09-04 19:10:07,700 - cluster-checker.py - INFO - ['clear_node_high_bit', ' yes']
+2022-09-04 19:10:07,701 - cluster-checker.py - INFO - ['token', ' 5000']
+2022-09-04 19:10:07,701 - cluster-checker.py - INFO - ['token_retransmits_before_loss_const', ' 10']
+2022-09-04 19:10:07,701 - cluster-checker.py - INFO - ['join', ' 60']
+2022-09-04 19:10:07,701 - cluster-checker.py - INFO - ['consensus', ' 6000']
+2022-09-04 19:10:07,701 - cluster-checker.py - INFO - ['max_messages', ' 20']
+2022-09-04 19:10:07,702 - cluster-checker.py - INFO - ['ringnumber', ' 0']
+2022-09-04 19:10:07,702 - cluster-checker.py - INFO - ['mcastport', ' 5405']
+2022-09-04 19:10:07,702 - cluster-checker.py - INFO - ['ttl', ' 1']
+2022-09-04 19:10:07,702 - cluster-checker.py - INFO - ['transport', ' udpu\n']
+2022-09-04 19:10:07,702 - cluster-checker.py - INFO - <class 'dict'>
+2022-09-04 19:10:07,702 - cluster-checker.py - INFO - {'version': ' 2', 'secauth': ' on', 'crypto_hash': ' sha1', 'crypto_cipher': ' aes256', 'cluster_name': ' hacluster', 'clear_node_high_bit': ' yes', 'token': ' 5000', 'token_retransmits_before_loss_const': ' 10', 'join': ' 60', 'consensus': ' 6000', 'max_messages': ' 20', 'ringnumber': ' 0', 'mcastport': ' 5405', 'ttl': ' 1', 'transport': ' udpu\n'}
+2022-09-04 19:10:07,703 - cluster-checker.py - INFO - start checking and comparing against the documentation: https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-pacemaker 15[A]
+2022-09-04 19:10:07,703 - cluster-checker.py - INFO - Token value is incorrect, customer have this value 5000
+2022-09-04 19:10:07,703 - cluster-checker.py - INFO - consensus value is incorrect, customer have this value 6000
+2022-09-04 19:10:07,703 - cluster-checker.py - INFO - We found the below issues in the totem configuration of cluster, the below parameters needs to be checked ['token', 'consensus']
+2022-09-04 19:10:07,712 - cluster-checker.py - INFO - Quorum configuration is: b'quorum {\n\n\tprovider: corosync_votequorum\n\texpected_votes: 2\n\ttwo_node: 1\n}\n'
+2022-09-04 19:10:07,713 - cluster-checker.py - INFO - {'provider': 'corosync_votequorum', 'expected_votes': '2', 'two_node': '1'}
+2022-09-04 19:10:07,713 - cluster-checker.py - INFO - start checking Quorum setting in corosync based on our documentation
+2022-09-04 19:10:07,713 - cluster-checker.py - INFO - Done with Quorum check
