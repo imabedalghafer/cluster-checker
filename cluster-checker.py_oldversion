@@ -1,0 +1,126 @@
+"""
+Script for cluster checking configuration
+you need to provide it with the path for supportconfig extracted folder
+The tasks the script will do:
+- find the ha.txt file
+- check on the corosync configuration and check the configuration against the doc:
+https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-pacemaker#install-the-cluster
+- determine the names of the nodes in the cluster
+- check on the hosts file if it has the 2 nodes mentioned there
+- determine the type of application in cluster is it "ASCS/ERS, NFS , SAP Hana"
+- determine the type of fencing that is used:
+    - in case of SBD prints the message status of the SBD devices and their configuration
+    - in case of azure fence agent, check the packages version of python-azure-core, python-azure-mgmt-compute and python-azure-identity
+- check on the resource definition and parameters as per our documentation and print if there is any differences for manual checking
+- check on the version of resource-agents package and fence-agents package
+"""
+
+from contextvars import copy_context
+from importlib.resources import path
+import os
+import logging
+import subprocess
+import sys
+import json
+import ast
+
+f_handle = logging.FileHandler('./cluster-checker.log',mode='w')
+f_format = logging.Formatter('%(asctime)s - %(filename)s - %(levelname)s - %(message)s')
+f_handle.setFormatter(f_format)
+
+logger = logging.getLogger(__name__)
+logger.addHandler(f_handle)
+logger.setLevel(logging.DEBUG)
+
+def checkFileExistance(path_to_scc):
+    logger.info('check for exsitence of supportconfig report itself')
+    if not os.path.exists(path_to_scc):
+        logger.info('The supportconfig report cannot be found')
+        print('Please enter a valid path to the supportconfig report')
+        return False
+    #logger.info('ha.txt, network.txt, rpm.txt')
+    path_to_ha = path_to_scc + '/ha.txt'
+    path_to_netowrk = path_to_scc + '/network.txt'
+    path_to_rpm = path_to_scc + '/rpm.txt'
+    if not os.path.exists(path_to_ha) or not os.path.exists(path_to_netowrk) or not os.path.exists(path_to_rpm):
+        logger.info(path_to_ha)
+        logger.info(path_to_netowrk)
+        logger.info(path_to_rpm)
+        logger.info('Please ensure to have ha.txt, network.txt, rpm.txt avaiable in the path provided')
+        print('Please ensure to have ha.txt, network.txt, rpm.txt avaiable in the path provided')
+    else:
+        logger.info('All files are there, ready to proceed to next step ..')
+        return True
+    return False
+
+
+def corosyncCheck(path_to_scc):
+    path_to_ha = path_to_scc + '/ha.txt'
+    cmd = 'grep -A 58 "\# /etc/corosync/corosync.conf" ' + path_to_ha
+    output = subprocess.Popen([cmd], stdout= subprocess.PIPE, shell=True)
+    corosyncConfig = str(output.communicate()[0])
+    logger.info(corosyncConfig)
+    logger.info('Dropping not needed headers')
+    corosyncConfig = corosyncConfig.replace('# /etc/corosync/corosync.conf\\n','')
+    corosyncConfig = corosyncConfig.split('#')[0] #to get rid of everything at the end of the file with #
+    
+    # to get rid of the comments on the file
+    corosyncConfig = corosyncConfig.replace('# Please read the corosync.conf.5 manual page\\n','') 
+    corosyncConfig = corosyncConfig.replace('\\n\\n\\t# Enable and configure quorum subsystem (default: off)\\n\\t','')
+    corosyncConfig = corosyncConfig.replace('# see also corosync.conf.5 and votequorum.5\\n\\t','')
+    
+    # tweaking the output
+    corosyncConfig = corosyncConfig.replace('b\'totem','totem:')
+    corosyncConfig = corosyncConfig.replace('interface','interface:')
+    corosyncConfig = corosyncConfig.replace('{\\n\\t','{')
+    corosyncConfig = corosyncConfig.replace('{\\n\\t\\t','{')
+    corosyncConfig = corosyncConfig.replace('{\\t','{')
+    corosyncConfig = corosyncConfig.replace('\\n\\t',',')
+    corosyncConfig = corosyncConfig.replace(',}','}')
+    corosyncConfig = corosyncConfig.replace('\\t','')
+    corosyncConfig = corosyncConfig.replace('\\n\\nlogging',', logging:')
+    #corosyncConfig = corosyncConfig.replace('logging',', logging:')
+    corosyncConfig = corosyncConfig.replace('logger_subsys',' logger_subsys :')
+    corosyncConfig = corosyncConfig.replace('\\n\\nnodelist',', nodelist: ')
+    #corosyncConfig = corosyncConfig.replace('nodelist',', nodelist: ')
+    corosyncConfig = corosyncConfig.replace('\\n\\nquorum',', quorum: ')
+    corosyncConfig = corosyncConfig.replace('quorum',', quorum: ')
+    corosyncConfig = corosyncConfig.replace('\\n','')
+    corosyncConfig = corosyncConfig.replace('}\'','}')
+    corosyncConfig = corosyncConfig.replace('node','node :')
+    corosyncConfig = corosyncConfig.replace('node :list','nodelist')
+    corosyncConfig = corosyncConfig.replace('two_node :','two_node')
+    corosyncConfig = corosyncConfig.replace('node :id','nodeid')
+    corosyncConfig = corosyncConfig.replace('clear_node :','clear_node')
+    corosyncConfig = corosyncConfig.replace('/','\/')
+    #corosyncConfig = corosyncConfig.replace('expected_votes','expectedVotes')
+    #corosyncConfig_json = ast.literal_eval(corosyncConfig) 
+    #corosyncConfig = '{' + corosyncConfig + '}'
+    #corosyncConfig = corosyncConfig.split(':')
+    logger.info(type(corosyncConfig))
+    logger.info(corosyncConfig)
+
+
+if __name__ == '__main__':
+    raw_args = sys.argv
+    while True:
+        if len(raw_args) <= 1 :
+            logger.info('Please provide the path to scc report')
+            path_to_scc= input('Please provide the path to scc report (either relative or absolute)')
+            if path_to_scc is None or len(path_to_scc.split('/')) < 2:
+                continue
+            break
+        else:
+            path_to_scc = raw_args[1]
+            break
+
+    logger.info(path_to_scc)
+    if checkFileExistance(path_to_scc):
+        corosyncCheck(path_to_scc)
+
+
+
+    
+    
+
+
