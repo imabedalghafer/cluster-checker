@@ -1,3 +1,4 @@
 dev
 scc*
 cluster-checker.log
+*.xml

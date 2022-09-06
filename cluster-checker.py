@@ -15,9 +15,6 @@ https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-avail
 - check on the version of resource-agents package and fence-agents package
 """
 
-from contextvars import copy_context
-from functools import total_ordering
-from importlib.resources import path
 import os
 import logging
 import subprocess
@@ -150,8 +147,98 @@ def quorumChecker(path_to_scc):
     else:
         print('Done checking on Quorum configuration, and no error found... proceeding further')
         logger.info('Done with Quorum check')
-    
-    
+'''    
+def hostChecker(path_to_scc):
+    path_to_ha = path_to_scc + '/ha.txt'
+    path_to_network = path_to_scc + '/network.txt'    
+    node_cmd = 'grep "ring0" ' + path_to_ha + ' | cut -d ":" -f 2 '
+    output = subprocess.Popen([node_cmd], stdout= subprocess.PIPE, shell=True)
+    node_ips = str(output.communicate()[0])
+    logger.info(f'node IPs from corosync config are: {node_ips}')
+    node_ips = node_ips.replace('b\' ', '\'')
+    node_ips = node_ips.replace('\\n ', '\\n')
+    node_ips = node_ips.replace('\\n\'', '\'')
+    node_ips = ast.literal_eval(node_ips)
+    node_ips_list = node_ips.split('\n')
+    logger.info(node_ips_list)
+
+    logger.info('Start checking if the nodes that are configured in corosync file are in the hosts file')
+    hosts_cmd = f'grep -e "{node_ips_list[0]}|{node_ips_list[2]}" ' + path_to_network
+    output = subprocess.Popen([hosts_cmd], stdout= subprocess.PIPE, shell=True)
+'''
+
+def rpmChecker(path_to_scc, version_id):
+    logger.info('Start checking the installed packages for any known issues..')
+    path_to_rpm = path_to_scc + '/rpm.txt'
+    if version_id.split('.')[0] == "12":
+        packages_list = {'fence-agents':4.4 ,'python-azure-mgmt-compute': 17.0, 'python-azure-identity' : 1.0 ,'cloud-netconfig-azure': 1.3 ,'resource-agents': 4.3,'python-azure-core': [1.9, 1.22] }
+    if version_id.split('.')[0] == "15":
+        #packages_list = ['fence-agents','python3-azure-mgmt-compute','python3-azure-identity','cloud-netconfig-azure','resource-agents','python3-azure-core']
+        packages_list = {'fence-agents':4.4 ,'python3-azure-mgmt-compute': 17.0, 'python3-azure-identity' : 1.0 ,'cloud-netconfig-azure': 1.3 ,'resource-agents': 4.3,'python3-azure-core': [1.9, 1.22] }
+    logger.info(f'Check for the following packages {packages_list.keys()}')
+    missing_rpms = []
+    not_correct_version = []
+    for i in packages_list.keys():
+        rpm_find_cmd = 'grep '+ i + ' ' + path_to_rpm + ' | head -1  | awk \'{print $NF}\''
+        output = subprocess.Popen([rpm_find_cmd], stdout=subprocess.PIPE, shell=True)
+        rpm_version = str(output.communicate()[0])
+        rpm_version = rpm_version.replace('b\'','')
+        rpm_version = rpm_version.replace('\'','')
+        rpm_version = rpm_version.replace('\\n','')
+        if len(rpm_version) != 0:
+            #rpm_version = rpm_version[0] + rpm_version[1] + rpm_version[2]
+            rpm_version_list = rpm_version.split('.')
+            #logger.info(rpm_version_list)
+            if rpm_version_list[1].find('-'):
+                rpm_version_list[1] = rpm_version_list[1].split('-')[0]
+            rpm_version = float(rpm_version_list[0] + '.' + rpm_version_list[1])
+            logger.info(f'{i} has version {rpm_version}')
+            if not isinstance(packages_list[i], float):
+                if rpm_version == packages_list[i][0] or rpm_version > packages_list[i][1]:
+                    logger.info(f'package {i} is good, with version {rpm_version}')
+                else:
+                    logger.info(f'package {i} is not on a good version, it has a version {rpm_version} while it should either {packages_list[i][0]} or greater than {packages_list[i][1]}')
+                    not_correct_version.append(i)
+            else:
+                if rpm_version >= packages_list[i]:
+                    logger.info(f'package {i} is good, with version {rpm_version}')
+                else:
+                    logger.info(f'package {i} is not on a good version, it has a version {rpm_version} while it should had {packages_list[i]}')
+                    not_correct_version.append(i)
+        else:
+            logger.info(f'{i} is not installed on system')
+            missing_rpms.append(i)
+
+    if len(missing_rpms) != 0 or len(not_correct_version) != 0:
+        logger.info(f'Below are the missing packages {missing_rpms}')
+        print(f'Below are the missing packages {missing_rpms}')
+        logger.info(f'Below are packages with incorrect versions {not_correct_version}')
+        print(f'Below are packages with incorrect versions {not_correct_version}')
+    else:
+        logger.info('Done checking on rpms and everything is fine..')
+        print('Done checking on rpms and everything is fine..')
+        
+
+def osVersion(path_to_scc):
+    logger.info('Checking for the basic-environment.txt file')
+    file_path = path_to_scc + '/basic-environment.txt'
+    cmd = 'grep VERSION_ID ' + file_path + ' | cut -d "=" -f 2'
+    output = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
+    version_id = str(output.communicate()[0])
+    version_id = version_id.replace('b\'','\'')
+    version_id = version_id.replace('\\n','')
+    version_id = version_id.replace('\"','')
+    version_id = ast.literal_eval(version_id)
+    version_id = str(version_id)
+    logger.info(f'The OS version is: {version_id}')
+    return version_id
+
+def readingCib(path_to_scc):
+    path_to_ha = path_to_scc + '/ha.txt'
+    get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > cib.xml"
+    output = subprocess.Popen([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
+    logger.info(output.communicate()[0])
+
 
 if __name__ == '__main__':
     raw_args = sys.argv
@@ -168,8 +255,12 @@ if __name__ == '__main__':
 
     logger.info(path_to_scc)
     if checkFileExistance(path_to_scc):
+        version_id = osVersion(path_to_scc)
+        readingCib(path_to_scc)
         totemChecker(path_to_scc)
         quorumChecker(path_to_scc)
+        rpmChecker(path_to_scc, version_id)
+        #hostChecker(path_to_scc)
 
 
 
