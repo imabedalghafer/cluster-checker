@@ -19,7 +19,7 @@ import os
 import logging
 import subprocess
 import sys
-import json
+import xml.etree.ElementTree as ET
 import ast
 
 f_handle = logging.FileHandler('./cluster-checker.log',mode='w')
@@ -233,11 +233,16 @@ def osVersion(path_to_scc):
     logger.info(f'The OS version is: {version_id}')
     return version_id
 
+
 def readingCib(path_to_scc):
     path_to_ha = path_to_scc + '/ha.txt'
     get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > cib.xml"
     output = subprocess.Popen([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
-    logger.info(output.communicate()[0])
+    #path_to_xml = 'cib.xml'
+    #xml_to_json(path_to_xml)
+    mycib = ET.parse('cib.xml')
+    logger.info(mycib.getroot()[0][2])
+    #logger.info(mycib.getroot()[0].attrib)
 
 
 if __name__ == '__main__':
@@ -257,10 +262,10 @@ if __name__ == '__main__':
     if checkFileExistance(path_to_scc):
         version_id = osVersion(path_to_scc)
         readingCib(path_to_scc)
-        totemChecker(path_to_scc)
-        quorumChecker(path_to_scc)
-        rpmChecker(path_to_scc, version_id)
-        #hostChecker(path_to_scc)
+        #totemChecker(path_to_scc)
+        #quorumChecker(path_to_scc)
+        #rpmChecker(path_to_scc, version_id)
+        
 
 
 
