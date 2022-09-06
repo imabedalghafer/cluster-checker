@@ -2,3 +2,4 @@ dev
 scc*
 cluster-checker.log
 *.xml
+*_oldversion
