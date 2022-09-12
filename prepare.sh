@@ -13,7 +13,7 @@ then
         python3 -m venv dev
         source dev/bin/activate
         dev/bin/pip install --upgrade pip
-        dev/bin/pip install opencensus ast lxml
+        dev/bin/pip install opencensus lxml
         echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
     else
         echo 'Please install the python3 venv module, usually the package name is python3-virtualenv'
@@ -29,7 +29,7 @@ then
         python3 -m venv dev
         source dev/bin/activate
         dev/bin/pip install --upgrade pip
-        dev/bin/pip install opencensus ast lxml
+        dev/bin/pip install opencensus lxml
         echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
     else
         echo 'Please install the python3 venv module usually its name is python3.X-venv'
