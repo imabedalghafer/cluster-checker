@@ -22,7 +22,7 @@ import sys
 import xml.etree.ElementTree as ET
 from xml import etree
 import ast
-from telemtry import collect_sr, log_case_scc
+#from telemtry import collect_sr, log_case_scc
 
 f_handle = logging.FileHandler('./cluster-checker.log',mode='w')
 f_format = logging.Formatter('%(asctime)s - %(filename)s - %(levelname)s - %(message)s')
