@@ -5,8 +5,8 @@ echo "in case you don't have python3 installed on your wsl, you can either insta
 if [ -f /bin/yum ]
 then
     echo 'rpm based distro detected..'
-    echo 'executing rpm -qa | grep venv'
-    rpm -qa | grep venv
+    echo 'executing rpm -qa | grep virtualenv'
+    rpm -qa | grep virtualenv
     if [ $? -eq 0 ]
     then
         echo 'virtual environment of python package avaible, creating a new dev environment and install requirements on it'
