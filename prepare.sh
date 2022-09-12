@@ -12,7 +12,7 @@ then
         echo 'virtual environment of python package avaible, creating a new dev environment and install requirements on it'
         python3 -m venv dev
         source dev/bin/activate
-        dev/bin/pip install -r requirements.txt
+        dev/bin/pip install opencensus ast lxml
         echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
     else
         echo 'Please install the python3 venv module, usually the package name is python3-virtualenv'
@@ -27,7 +27,7 @@ then
         echo 'virtual environment of python package avaible, creating a new dev environment and install requirements on it'
         python3 -m venv dev
         source dev/bin/activate
-        dev/bin/pip install -r requirements.txt
+        dev/bin/pip install opencensus ast lxml
         echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
     else
         echo 'Please install the python3 venv module usually its name is python3.X-venv'
