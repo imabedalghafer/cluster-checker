@@ -149,25 +149,6 @@ def quorumChecker(path_to_scc):
     else:
         print('Done checking on Quorum configuration, and no error found... proceeding further')
         logger.info('Done with Quorum check')
-'''    
-def hostChecker(path_to_scc):
-    path_to_ha = path_to_scc + '/ha.txt'
-    path_to_network = path_to_scc + '/network.txt'    
-    node_cmd = 'grep "ring0" ' + path_to_ha + ' | cut -d ":" -f 2 '
-    output = subprocess.Popen([node_cmd], stdout= subprocess.PIPE, shell=True)
-    node_ips = str(output.communicate()[0])
-    logger.info(f'node IPs from corosync config are: {node_ips}')
-    node_ips = node_ips.replace('b\' ', '\'')
-    node_ips = node_ips.replace('\\n ', '\\n')
-    node_ips = node_ips.replace('\\n\'', '\'')
-    node_ips = ast.literal_eval(node_ips)
-    node_ips_list = node_ips.split('\n')
-    logger.info(node_ips_list)
-
-    logger.info('Start checking if the nodes that are configured in corosync file are in the hosts file')
-    hosts_cmd = f'grep -e "{node_ips_list[0]}|{node_ips_list[2]}" ' + path_to_network
-    output = subprocess.Popen([hosts_cmd], stdout= subprocess.PIPE, shell=True)
-'''
 
 def rpmChecker(path_to_scc, version_id):
     logger.info('Start checking the installed packages for any known issues..')
