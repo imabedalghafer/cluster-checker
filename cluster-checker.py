@@ -238,7 +238,7 @@ def readingCib(path_to_scc):
     path_to_ha = path_to_scc + '/ha.txt'
     get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > ./cib.xml"
     output = subprocess.Popen([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
-    path_to_xml = 'cib.xml'
+    path_to_xml = './cib.xml'
     #xml_to_json(path_to_xml)
     parser = etree.XMLParser(recover=True)
     mycib = ET.parse(path_to_xml,parser=parser)
