@@ -20,7 +20,9 @@ import logging
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+from xml import etree
 import ast
+from telemtry import collect_sr, log_case_scc
 
 f_handle = logging.FileHandler('./cluster-checker.log',mode='w')
 f_format = logging.Formatter('%(asctime)s - %(filename)s - %(levelname)s - %(message)s')
@@ -210,10 +212,26 @@ def rpmChecker(path_to_scc, version_id):
             missing_rpms.append(i)
 
     if len(missing_rpms) != 0 or len(not_correct_version) != 0:
-        logger.info(f'Below are the missing packages {missing_rpms}')
-        print(f'Below are the missing packages {missing_rpms}')
-        logger.info(f'Below are packages with incorrect versions {not_correct_version}')
-        print(f'Below are packages with incorrect versions {not_correct_version}')
+        logger.info(f'The missing packages are {missing_rpms}')
+        print(f'The missing packages are {missing_rpms}')
+        logger.info(f'Packages with incorrect versions are {not_correct_version}')
+        print(f'Packages with incorrect versions are {not_correct_version}')
+        cluster_config = readingCib(path_to_scc)
+        resources_config = cluster_config[2]
+        logger.info(resources_config.getchildren())
+        has_fence_agent = 0
+        for i in resources_config:
+            logger.info(i.attrib)
+            if  i.attrib.has_key('type'):
+                if i.attrib['type'] == 'fence_azure_arm' :
+                    has_fence_agent = 1
+                    break
+        if has_fence_agent:
+            logger.info('Customer has fence agent, please consider the python packages mentioned')
+            print('Customer has fence agent, please consider the python packages mentioned')
+        else:    
+            logger.info('Customer does not have fence agent configured, please ignore the python packages mentioned.')
+            print('Customer does not have fence agent configured, please ignore the python packages mentioned.')
     else:
         logger.info('Done checking on rpms and everything is fine..')
         print('Done checking on rpms and everything is fine..')
@@ -235,15 +253,47 @@ def osVersion(path_to_scc):
 
 
 def readingCib(path_to_scc):
+    from lxml import etree # imported to use the enhanced parser in this library.
     path_to_ha = path_to_scc + '/ha.txt'
-    get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > cib.xml"
+    get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > ./cib.xml"
     output = subprocess.Popen([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
-    #path_to_xml = 'cib.xml'
+    path_to_xml = 'cib.xml'
     #xml_to_json(path_to_xml)
-    mycib = ET.parse('cib.xml')
-    logger.info(mycib.getroot()[0][2])
+    parser = etree.XMLParser(recover=True)
+    mycib = ET.parse(path_to_xml,parser=parser)
+    return mycib.getroot()[0]
     #logger.info(mycib.getroot()[0].attrib)
 
+def propertyChecker(root_xml):
+    root = root_xml
+    logger.info(root)
+    cluster_property = root[0][0]
+    logger.info(cluster_property)
+    for i in cluster_property:
+        if i.attrib['name'] == 'stonith-enabled':
+            logger.info(f'Customer has stonith-enabled set to: {i.attrib["value"]}')
+            print(f'Customer has stonith-enabled set to: {i.attrib["value"]}')
+
+    node_list = []
+    node_list_xml = root[1]
+    
+    for  i in node_list_xml:
+        node_list.append(i.attrib['uname'])
+    
+    logger.info(f'Customer has the below nodes as part of cluster: {node_list}')
+    print(f'Customer has the below nodes as part of cluster: {node_list}')
+
+    cluster_resources = root[2]
+    fencing_resources = []
+    for i in cluster_resources:
+        if i.attrib.has_key('type'):
+            if i.attrib['type'] == 'fence_azure_arm':
+                fencing_resources.append('azure_fence_agent')
+            if i.attrib['type'] == 'external/sbd':
+                fencing_resources.append('sbd')
+    
+    logger.info(f'Customer has the below fencing mechanism configured: {fencing_resources}')
+    print(f'Customer has the below fencing mechanism configured: {fencing_resources}')
 
 if __name__ == '__main__':
     raw_args = sys.argv
@@ -257,14 +307,17 @@ if __name__ == '__main__':
         else:
             path_to_scc = raw_args[1]
             break
-
+    
+    #sr_num = collect_sr()
     logger.info(path_to_scc)
+    #log_case_scc(sr_num, path_to_scc)
     if checkFileExistance(path_to_scc):
         version_id = osVersion(path_to_scc)
-        readingCib(path_to_scc)
-        #totemChecker(path_to_scc)
-        #quorumChecker(path_to_scc)
-        #rpmChecker(path_to_scc, version_id)
+        root_xml = readingCib(path_to_scc)
+        propertyChecker(root_xml)
+        totemChecker(path_to_scc)
+        quorumChecker(path_to_scc)
+        rpmChecker(path_to_scc, version_id)
         
 
 
