@@ -4,3 +4,4 @@ cluster-checker.log
 *.xml
 *_oldversion
 telemtry.py
+__pycache__/
