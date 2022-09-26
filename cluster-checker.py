@@ -1,3 +1,4 @@
+#!dev/bin/python
 """
 Script for cluster checking configuration
 you need to provide it with the path for supportconfig extracted folder
