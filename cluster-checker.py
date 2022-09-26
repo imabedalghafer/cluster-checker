@@ -238,8 +238,8 @@ def readingCib(path_to_scc):
     path_to_ha = path_to_scc + '/ha.txt'
     get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > ./cib.xml"
     output = subprocess.Popen([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
+    
     path_to_xml = './cib.xml'
-    #xml_to_json(path_to_xml)
     parser = etree.XMLParser(recover=True)
     mycib = ET.parse(path_to_xml,parser=parser)
     return mycib.getroot()[0]
@@ -276,6 +276,292 @@ def propertyChecker(root_xml):
     logger.info(f'Customer has the below fencing mechanism configured: {fencing_resources}')
     print(f'Customer has the below fencing mechanism configured: {fencing_resources}')
 
+def SAPHanaChecker(resources):
+    i = resources
+    printed=False
+    logger.info(i.attrib['id'])
+    #if i.attrib['id'].find('Topology') == -1:
+    #    logger.info('Customer have SAP hana cluster')
+    #    print('Customer have SAP hana cluster')
+    cluster_type='SAPHana'
+    if i.attrib['id'].find('Topology') != -1:
+        issues_dict = {}
+        logger.info('Customer have SAP hana cluster')
+        print('Customer have SAP hana cluster')
+        printed=True
+        logger.info(i.attrib['id'])
+        logger.info('Checking on the topology resource metadata as per our documentation')
+        logger.info(i[0])
+        issues_dict['topology_metadata']={}
+        issues_dict['topology_operation']={}
+        for j in i[0]:
+            logger.info(j.attrib['name'])
+            if j.attrib['name'] == 'clone-node-max' and j.attrib['value'] != "1":
+                issues_dict['topology_metadata'].update({'clone-node-max' : j.attrib['value']})
+            elif j.attrib['name'] == 'interleave' and j.attrib['value'] != 'true':
+                issues_dict['topology_metadata'].update({'interleave' : j.attrib['value']})
+        logger.info('Checking on the permittive on SAP Topology')
+        logger.info(i[1].attrib['id'])
+        logger.info(i[1].attrib['type'])
+        for j in i[1][0]:
+            if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != "10" or j.attrib['timeout'] != "600"):
+                    issues_dict['topology_operation'].update({'monitor' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "600"):
+                issues_dict['topology_operation'].update({'start' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "300"):
+                issues_dict['topology_operation'].update({'stop' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+        
+        if issues_dict['topology_metadata'] is not None or issues_dict['topology_operation'] is not None:
+            logger.info(f'SAP topology has issues below {issues_dict}')
+            print(f'SAP topology has issues below {issues_dict}')
+            
+
+    elif i.attrib['id'].find('SAPHana') != -1 and i.attrib['id'].find('Topology') == -1:
+        issues_dict = {}
+        if not printed:
+            logger.info('Customer have SAP hana cluster')
+            print('Customer have SAP hana cluster')
+        logger.info(i.attrib['id'])
+        logger.info('Checking on the SAP resource as per our documentation')
+        issues_dict['Hana_metadata']={}
+        issues_dict['Hana_operation']={}
+        issues_dict['Hana_instance_attributes']={}
+        logger.info(i[0])
+        for j in i[0]:
+            logger.info(j.attrib['name'])
+            if j.attrib['name'] == 'clone-node-max' and j.attrib['value'] != "1":
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'interleave' and j.attrib['value'] != 'true':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'is-managed' and j.attrib['value'] != 'true':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'notify' and j.attrib['value'] != 'true':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'clone-max' and j.attrib['value'] != '2':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})                
+        
+        logger.info('Checking on the permittive of SAP Hana')
+        logger.info(i[1].attrib['id'])
+        logger.info(i[1].attrib['type'])
+        for j in i[1][0]:
+            if j.attrib['name'] == 'monitor' and j.attrib['role'] == 'Master' and (j.attrib['interval'] != "60" or j.attrib['timeout'] != "700"):
+                    issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'monitor' and j.attrib['role'] == 'Slave' and (j.attrib['interval'] != "61" or j.attrib['timeout'] != "700"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'promote' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+        
+        logger.info('Checking on the instance_attributes of SAP Hana')
+        logger.info(i[1][1].attrib['id'])
+        for j in i[1][1]:
+            if j.attrib['name'] == 'PREFER_SITE_TAKEOVER' and j.attrib['value'] != 'true':
+                issues_dict['Hana_instance_attributes'].update({j.attrib['name'] : j.attrib['value']})
+            if j.attrib['name'] == 'DUPLICATE_PRIMARY_TIMEOUT' and j.attrib['value'] != '7200':
+                issues_dict['Hana_instance_attributes'].update({j.attrib['name'] : j.attrib['value']})
+            if j.attrib['name'] == 'SID':
+                sid = j.attrib['value']
+            if j.attrib['name'] == 'InstanceNumber':
+                instanceNumber = j.attrib['value']
+            if j.attrib['name'] == 'AUTOMATED_REGISTER':
+                auto_register = j.attrib['value']
+        
+        logger.info('\033[93m' + f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is {auto_register}' + '\033[0m')
+        print('\033[93m' + f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is {auto_register}' + '\033[0m')
+
+        if issues_dict['Hana_metadata'] is not None or issues_dict['Hana_operation'] is not None:
+            logger.info(f'SAP topology has issues below {issues_dict}')
+            print(f'SAP topology has issues below {issues_dict}')
+
+def ASCSGroupChecker(resources):
+    i = resources
+    fs_issues={}
+    logger.info(i.attrib['id'])
+    logger.info('Customer have ASCS/ERS cluster')
+    print('Customer have ASCS/ERS cluster')
+    logger.info('Start checking on the ASCS resource group')
+    for resource in i:
+        if 'type' in resource.keys():
+            #print(type(resource.attrib['type']))
+            if resource.attrib['type'] == 'Filesystem':
+                logger.info('Start checking on ASCS file system all details')
+                fs_issues['ascs_fs_operation']={}
+                logger.info(f'Resource name checking is {resource.attrib["id"]}')
+                logger.info('Checking on instance_attributes')
+                for j in resource[0]:
+                    if j.attrib['name'] == 'device':
+                        device=j.attrib['value']
+                    elif j.attrib['name'] == 'directory':
+                        mountpoint=j.attrib['value']
+                    elif j.attrib['name'] == 'fstype':
+                        fstype=j.attrib['value']
+                logger.info('\033[93m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                print('\033[93m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                logger.info('Checking file system operation parameters:')
+                for j in resource[1]:
+                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'].find('20') == -1 or j.attrib['timeout'].find('40') == -1 ):
+                        fs_issues['ascs_fs_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+                    if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'].find('60') == -1):
+                        fs_issues['ascs_fs_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+                    if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'].find('60') == -1):
+                        fs_issues['ascs_fs_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+                
+                if fs_issues['ascs_fs_operation']:
+                    logger.info(f'ASCS file system resource has following issues {fs_issues}')
+                    print(f'ASCS file system resource has following issues {fs_issues}')
+
+            elif resource.attrib['type'] == 'anything' or resource.attrib['type'] == 'azure-lb':
+                if resource.attrib['type'] == 'anything':
+                    logger.info('Customer is using socat or nc for load balancer probing')
+                    for j in resource[0]:
+                        if j.attrib['name'] == 'binfile':
+                            command = j.attrib['value']
+                        if j.attrib['name'] == 'cmdline_options':
+                            options = j.attrib['value']
+                    logger.info('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
+                    print('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
+                    fs_issues['socat_operations']={}
+                    if resource[1][0].attrib['name'] == 'monitor' and (resource[1][0].attrib['interval'].find('10') == -1 or resource[1][0].attrib['timeout'].find('20') == -1 ):
+                        fs_issues['socat_operations'].update({resource[1][0].attrib['name'] : { 'interval': resource[1][0].attrib['interval'] , 'timeout' : resource[1][0].attrib['timeout'] }})
+                    
+                    if fs_issues['socat_operations']:
+                        logger.info(f'ASCS Azure lb has the following issues {fs_issues}')
+                        print(f'ASCS Azure lb has the following issues {fs_issues}')  
+
+                else:
+                    logger.info('Customer is using azure-lb')
+                    print('Customer is using azure-lb for load balancer probing')
+            
+            elif resource.attrib['type'] == 'SAPInstance':
+                logger.info('Checking on ASCS resource and start with operations')
+                fs_issues['ascs_operations']={}
+                for j in resource[0]:
+                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != '11' or j.attrib['timeout'] != '60' or j.attrib['on-fail'] != 'restart' ):
+                        fs_issues['ascs_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] , 'on-fail': j.attrib['on-fail']}})
+                
+                if fs_issues['ascs_operations']:
+                    logger.info(f'ASCS resource has following issues on operations {fs_issues}')
+                    print(f'ASCS resource has following issues on operations {fs_issues}')
+                
+                logger.info('Moving to check on the instance metadata information for ASCS')
+                for j in resource[1]:
+                    if j.attrib['name'] == 'InstanceName':
+                        instanceName=j.attrib['value']
+                    if j.attrib['name'] == 'START_PROFILE':
+                        startProfile=j.attrib['value']
+                    if j.attrib['name'] == 'AUTOMATIC_RECOVER':
+                        recoverState=j.attrib['value']
+                logger.info(f'ASCS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState}')
+                print(f'ASCS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState}')
+
+
+def ERSGroupChecker(resources):
+    i = resources
+    fs_issues={}
+    logger.info(i.attrib['id'])
+    logger.info('Customer have ASCS/ERS cluster')
+    #print('Customer have ASCS/ERS cluster')
+    logger.info('Start checking on the ERS resource group')
+    for resource in i:
+        if 'type' in resource.keys():
+            #print(type(resource.attrib['type']))
+            if resource.attrib['type'] == 'Filesystem':
+                logger.info('Start checking on ERS file system all details')
+                fs_issues['ers_fs_operations']={}
+                logger.info(f'Resource name checking is {resource.attrib["id"]}')
+                logger.info('Checking on instance_attributes')
+                for j in resource[0]:
+                    if j.attrib['name'] == 'device':
+                        device=j.attrib['value']
+                    elif j.attrib['name'] == 'directory':
+                        mountpoint=j.attrib['value']
+                    elif j.attrib['name'] == 'fstype':
+                        fstype=j.attrib['value']
+                logger.info('\033[93m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                print('\033[93m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                logger.info('Checking file system operation parameters:')
+                for j in resource[1]:
+                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'].find('20') == -1 or j.attrib['timeout'].find('40') == -1 ):
+                        fs_issues['ers_fs_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+                    if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'].find('60') == -1):
+                        fs_issues['ers_fs_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+                    if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'].find('60') == -1):
+                        fs_issues['ers_fs_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+                
+                if fs_issues['ers_fs_operations']:
+                    logger.info(f'ERS file system resource has following issues {fs_issues}')
+                    print(f'ERS file system resource has following issues {fs_issues}')
+
+            elif resource.attrib['type'] == 'anything' or resource.attrib['type'] == 'azure-lb':
+                if resource.attrib['type'] == 'anything':
+                    logger.info('Customer is using socat or nc for load balancer probing')
+                    for j in resource[0]:
+                        if j.attrib['name'] == 'binfile':
+                            command = j.attrib['value']
+                        if j.attrib['name'] == 'cmdline_options':
+                            options = j.attrib['value']
+                    logger.info('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
+                    print('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
+                    fs_issues['socat_operations']={}
+                    if resource[1][0].attrib['name'] == 'monitor' and (resource[1][0].attrib['interval'].find('10') == -1 or resource[1][0].attrib['timeout'].find('20') == -1 ):
+                        fs_issues['socat_operations'].update({resource[1][0].attrib['name'] : { 'interval': resource[1][0].attrib['interval'] , 'timeout' : resource[1][0].attrib['timeout'] }})
+                    
+                    if fs_issues['socat_operations']:
+                        logger.info(f'ERS Azure lb has the following issues {fs_issues}')
+                        print(f'ERS Azure lb has the following issues {fs_issues}')  
+
+                else:
+                    logger.info('Customer is using azure-lb')
+                    print('Customer is using azure-lb for load balancer probing')
+            
+            elif resource.attrib['type'] == 'SAPInstance':
+                logger.info('Checking on ERS resource and start with operations')
+                fs_issues['ers_operations']={}
+                for j in resource[0]:
+                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != '11' or j.attrib['timeout'] != '60' or j.attrib['on-fail'] != 'restart' ):
+                        fs_issues['ers_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] , 'on-fail': j.attrib['on-fail']}})
+                
+                if fs_issues['ers_operations']:
+                    logger.info(f'ERS resource has following issues on operations {fs_issues}')
+                    print(f'ERS resource has following issues on operations {fs_issues}')
+                
+                logger.info('Moving to check on the instance metadata information for ERS')
+                for j in resource[1]:
+                    if j.attrib['name'] == 'InstanceName':
+                        instanceName=j.attrib['value']
+                    if j.attrib['name'] == 'START_PROFILE':
+                        startProfile=j.attrib['value']
+                    if j.attrib['name'] == 'AUTOMATIC_RECOVER':
+                        recoverState=j.attrib['value']
+                    if j.attrib['name'] == 'IS_ERS':
+                        isERS=j.attrib['value']
+                logger.info(f'ERS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState} and has IS_ERS set to {isERS}')
+                print(f'ERS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState} and has IS_ERS set to {isERS}')
+
+
+def getClusterType(root_xml):
+    cluster_resources = root_xml[2]
+    logger.info(cluster_resources)
+    cluster_type=""
+    #issues_dict = {}
+    
+
+    for i in cluster_resources:
+        if i.attrib['id'].find('SAPHana') != -1:
+            SAPHanaChecker(i)
+        
+        elif i.attrib['id'].find('ASCS') != -1 or i.attrib['id'].find('ERS') != -1:
+            logger.info(i.attrib['id'])
+            cluster_type='ASCSERS'
+            if i.attrib['id'].find('ASCS') != -1:
+                ASCSGroupChecker(i)
+            elif i.attrib['id'].find('ERS') != -1:
+                ERSGroupChecker(i)
+                                                              
+
 if __name__ == '__main__':
     raw_args = sys.argv
     while True:
@@ -296,6 +582,7 @@ if __name__ == '__main__':
         version_id = osVersion(path_to_scc)
         root_xml = readingCib(path_to_scc)
         propertyChecker(root_xml)
+        getClusterType(root_xml)
         totemChecker(path_to_scc)
         quorumChecker(path_to_scc)
         rpmChecker(path_to_scc, version_id)
