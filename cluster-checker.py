@@ -253,7 +253,13 @@ def propertyChecker(root_xml):
     for i in cluster_property:
         if i.attrib['name'] == 'stonith-enabled':
             logger.info(f'Customer has stonith-enabled set to: {i.attrib["value"]}')
-            print(f'Customer has stonith-enabled set to: {i.attrib["value"]}')
+            if i.attrib["value"] == 'true':
+                print(f'Customer has stonith-enabled set to: {i.attrib["value"]}')
+            else:
+                print('\033[91m'+f'Customer has stonith-enabled set to: {i.attrib["value"]}' + '\033[0m')
+                print('\033[91m' + 'Please note that stonith-enabled=false cluster are not supported configuration as per the documentation https://documentation.suse.com/sle-ha/15-SP1/html/SLE-HA-all/cha-ha-fencing.html#sec-ha-fencing-recommend'+'\033[0m')
+                quit()
+        
 
     node_list = []
     node_list_xml = root[1]
