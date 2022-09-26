@@ -311,16 +311,16 @@ def SAPHanaChecker(resources):
             if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "300"):
                 issues_dict['topology_operation'].update({'stop' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
         
-        if issues_dict['topology_metadata'] is not None or issues_dict['topology_operation'] is not None:
+        if issues_dict['topology_metadata'] or issues_dict['topology_operation']:
             logger.info(f'SAP topology has issues below {issues_dict}')
             print(f'SAP topology has issues below {issues_dict}')
             
 
     elif i.attrib['id'].find('SAPHana') != -1 and i.attrib['id'].find('Topology') == -1:
         issues_dict = {}
-        if not printed:
-            logger.info('Customer have SAP hana cluster')
-            print('Customer have SAP hana cluster')
+        #if not printed:
+        #    logger.info('Customer have SAP hana cluster')
+        #    print('Customer have SAP hana cluster')
         logger.info(i.attrib['id'])
         logger.info('Checking on the SAP resource as per our documentation')
         issues_dict['Hana_metadata']={}
@@ -372,9 +372,9 @@ def SAPHanaChecker(resources):
         logger.info('\033[93m' + f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is {auto_register}' + '\033[0m')
         print('\033[93m' + f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is {auto_register}' + '\033[0m')
 
-        if issues_dict['Hana_metadata'] is not None or issues_dict['Hana_operation'] is not None:
-            logger.info(f'SAP topology has issues below {issues_dict}')
-            print(f'SAP topology has issues below {issues_dict}')
+        if issues_dict['Hana_metadata'] or issues_dict['Hana_operation']:
+            logger.info(f'SAP Hana has issues below {issues_dict}')
+            print(f'SAP Hana has issues below {issues_dict}')
 
 def ASCSGroupChecker(resources):
     i = resources
