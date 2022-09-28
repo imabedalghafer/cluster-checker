@@ -446,8 +446,8 @@ def ASCSGroupChecker(resources):
                 logger.info('Checking on ASCS resource and start with operations')
                 fs_issues['ascs_operations']={}
                 for j in resource[0]:
-                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != '11' or j.attrib['timeout'] != '60' or j.attrib['on-fail'] != 'restart' ):
-                        fs_issues['ascs_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] , 'on-fail': j.attrib['on-fail']}})
+                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != '11' or j.attrib['timeout'] != '60'  ):
+                        fs_issues['ascs_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
                 
                 if fs_issues['ascs_operations']:
                     logger.info(f'ASCS resource has following issues on operations {fs_issues}')
@@ -528,8 +528,8 @@ def ERSGroupChecker(resources):
                 logger.info('Checking on ERS resource and start with operations')
                 fs_issues['ers_operations']={}
                 for j in resource[0]:
-                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != '11' or j.attrib['timeout'] != '60' or j.attrib['on-fail'] != 'restart' ):
-                        fs_issues['ers_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] , 'on-fail': j.attrib['on-fail']}})
+                    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != '11' or j.attrib['timeout'] != '60'  ):
+                        fs_issues['ers_operations'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
                 
                 if fs_issues['ers_operations']:
                     logger.info(f'ERS resource has following issues on operations {fs_issues}')
