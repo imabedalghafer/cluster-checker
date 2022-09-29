@@ -151,7 +151,7 @@ def quorumChecker(path_to_scc):
         print('Done checking on Quorum configuration, and no error found... proceeding further')
         logger.info('Done with Quorum check')
 
-def rpmChecker(path_to_scc, version_id):
+def rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent):
     logger.info('Start checking the installed packages for any known issues..')
     path_to_rpm = path_to_scc + '/rpm.txt'
     if version_id.split('.')[0] == "12":
@@ -193,27 +193,29 @@ def rpmChecker(path_to_scc, version_id):
             logger.info(f'{i} is not installed on system')
             missing_rpms.append(i)
 
-    if len(missing_rpms) != 0 or len(not_correct_version) != 0:
+    if azure_fence_agent == 1 and (len(missing_rpms) != 0 or len(not_correct_version) != 0):
+        logger.info('Customer has fence agent, please consider the python packages mentioned')
+        print('Customer has fence agent, please consider the python packages mentioned')
         logger.info(f'The missing packages are {missing_rpms}')
         print(f'The missing packages are {missing_rpms}')
         logger.info(f'Packages with incorrect versions are {not_correct_version}')
         print(f'Packages with incorrect versions are {not_correct_version}')
-        cluster_config = readingCib(path_to_scc)
-        resources_config = cluster_config[2]
-        logger.info(resources_config.getchildren())
-        has_fence_agent = 0
-        for i in resources_config:
-            logger.info(i.attrib)
-            if  i.attrib.has_key('type'):
-                if i.attrib['type'] == 'fence_azure_arm' :
-                    has_fence_agent = 1
-                    break
-        if has_fence_agent:
-            logger.info('Customer has fence agent, please consider the python packages mentioned')
-            print('Customer has fence agent, please consider the python packages mentioned')
-        else:    
-            logger.info('Customer does not have fence agent configured, please ignore the python packages mentioned.')
-            print('Customer does not have fence agent configured, please ignore the python packages mentioned.')
+        #cluster_config = readingCib(path_to_scc)
+        #resources_config = cluster_config[2]
+        #logger.info(resources_config.getchildren())
+        #has_fence_agent = 0
+        #for i in resources_config:
+        #    logger.info(i.attrib)
+        #    if  i.attrib.has_key('type'):
+        #        if i.attrib['type'] == 'fence_azure_arm' :
+        #            has_fence_agent = 1
+        #            break
+        #if has_fence_agent:
+        #    logger.info('Customer has fence agent, please consider the python packages mentioned')
+        #    print('Customer has fence agent, please consider the python packages mentioned')
+        #else:    
+        #    logger.info('Customer does not have fence agent configured, please ignore the python packages mentioned.')
+        #    print('Customer does not have fence agent configured, please ignore the python packages mentioned.')
     else:
         logger.info('Done checking on rpms and everything is fine..')
         print('Done checking on rpms and everything is fine..')
@@ -239,7 +241,7 @@ def readingCib(path_to_scc):
     path_to_ha = path_to_scc + '/ha.txt'
     get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > ./cib.xml"
     output = subprocess.Popen([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
-    
+    logger.info(str(output.communicate()))
     path_to_xml = './cib.xml'
     parser = etree.XMLParser(recover=True)
     mycib = ET.parse(path_to_xml,parser=parser)
@@ -264,6 +266,7 @@ def propertyChecker(root_xml):
 
     node_list = []
     node_list_xml = root[1]
+    azure_fence_agent = sbd_fence_agent = 0
     
     for  i in node_list_xml:
         node_list.append(i.attrib['uname'])
@@ -277,11 +280,14 @@ def propertyChecker(root_xml):
         if i.attrib.has_key('type'):
             if i.attrib['type'] == 'fence_azure_arm':
                 fencing_resources.append('azure_fence_agent')
+                azure_fence_agent = 1
             if i.attrib['type'] == 'external/sbd':
                 fencing_resources.append('sbd')
+                sbd_fence_agent = 1
     
     logger.info(f'Customer has the below fencing mechanism configured: {fencing_resources}')
     print(f'Customer has the below fencing mechanism configured: {fencing_resources}')
+    return azure_fence_agent, sbd_fence_agent
 
 def SAPHanaChecker(resources):
     i = resources
@@ -588,11 +594,11 @@ if __name__ == '__main__':
     if checkFileExistance(path_to_scc):
         version_id = osVersion(path_to_scc)
         root_xml = readingCib(path_to_scc)
-        propertyChecker(root_xml)
+        azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
         getClusterType(root_xml)
         totemChecker(path_to_scc)
         quorumChecker(path_to_scc)
-        rpmChecker(path_to_scc, version_id)
+        rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
         
 
 
