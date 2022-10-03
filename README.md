@@ -1,6 +1,6 @@
 # Cluster checker script
 Script for checking cluster configuration on SUSE cluster
-you need to provide it with the path for supportconfig extracted folder
+The path to scc report need to be provided (either compressed or decompressed)
 The tasks the script will do:
 - find the ha.txt file
 - check on the corosync configuration and check the configuration against the doc:

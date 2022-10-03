@@ -23,6 +23,9 @@ import sys
 import xml.etree.ElementTree as ET
 from xml import etree
 import ast
+import traceback
+import xmltodict
+import json
 #from telemtry import collect_sr, log_case_scc
 
 f_handle = logging.FileHandler('./cluster-checker.log',mode='w')
@@ -240,12 +243,18 @@ def readingCib(path_to_scc):
     from lxml import etree # imported to use the enhanced parser in this library.
     path_to_ha = path_to_scc + '/ha.txt'
     get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > ./cib.xml"
-    output = subprocess.Popen([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
-    logger.info(str(output.communicate()))
-    path_to_xml = './cib.xml'
+    output = subprocess.run([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
+    #logger.info(str(output.communicate()))
+    path_to_xml = 'cib.xml'
     parser = etree.XMLParser(recover=True)
     mycib = ET.parse(path_to_xml,parser=parser)
+    ## to do  , rewrite teh code using a dictniary coded xml instead of parsing the xml itself in version 2
+    #xml_string = ET.tostring(mycib.getroot()[0], encoding='UTF-8', method='xml')
+    #dict_xml = xmltodict.parse(xml_string)
+    #print(dict_xml)
+    #return dict_xml
     return mycib.getroot()[0]
+    
     #logger.info(mycib.getroot()[0].attrib)
 
 def propertyChecker(root_xml):
@@ -555,6 +564,166 @@ def ERSGroupChecker(resources):
                 print(f'ERS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState} and has IS_ERS set to {isERS}')
 
 
+def nfsChecker(resources):
+    cluster_resources = resources
+    logger.info('Welcome to nfs checker ..')
+    logger.info('Checking for how many drbd devices used and if they exsits')
+    socat_nc = 0
+    azure_lb = 0
+
+    counter = 0
+    fs_counter = 0
+    exports_counter = 0
+    lb_counter_anything = 0
+    lb_counter_azure = 0
+
+    issues_config={}
+    fs_config={}
+    exports_config={}
+    lb_config={}
+
+    fs_issues_operation={}
+    exports_issues_operation={}
+    issues_operation={}
+    lb_issues_operation={}
+    for i in cluster_resources:
+        if i.tag == 'master' and i.attrib['id'].find('drbd') != -1:
+            counter += 1
+            xml_string = ET.tostring(i, encoding='UTF-8', method='xml')
+            dict_xml = xmltodict.parse(xml_string)
+            issues_config[dict_xml['master']['@id']]=[]
+            #print(dict_xml['master']['meta_attributes']['nvpair'])
+            master_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "master-max"), None)
+            master_node_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "master-node-max"), None)
+            clone_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "clone-max"), None)
+            clone_node_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
+            notify_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "notify"), None)
+            interleave_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
+            try:
+                if master_max_dict['@value'] != '1':
+                    issues_config[dict_xml['master']['@id']].append(master_max_dict)
+                if master_node_max_dict['@value'] != '1':
+                    issues_config[dict_xml['master']['@id']].append(master_node_max_dict)
+                if clone_max_dict['@value'] != '2':
+                    issues_config[dict_xml['master']['@id']].append(clone_max_dict)
+                if clone_node_max_dict['@value'] != '1':
+                    issues_config[dict_xml['master']['@id']].append(clone_node_max_dict)
+                if notify_dict['@value'] != 'true':
+                    issues_config[dict_xml['master']['@id']].append(notify_dict)
+                if interleave_dict['@value'] != 'true':
+                    issues_config[dict_xml['master']['@id']].append(interleave_dict)
+            except (TypeError, AttributeError) as e:
+                issues_config[dict_xml['master']['@id']].append(f"exception: {traceback.format_exc()}")
+
+            # Checking on the operation part
+            issues_operation[dict_xml['master']['@id']] = []
+            master_monitor = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Master'), None)
+            #print(master_monitor)
+            slave_monitor = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Slave'), None)
+            try:
+                if master_monitor['@interval'] != '15':
+                    issues_operation[dict_xml['master']['@id']].append(master_monitor)
+                if slave_monitor['@interval'] != '30':
+                    issues_operation[dict_xml['master']['@id']].append(slave_monitor)
+            except (TypeError, AttributeError) as e:
+                issues_operation[dict_xml['master']['@id']].append(f"exception: {traceback.format_exc()}")
+
+        # Moving to checking on the group of resources of the NFS
+        
+        elif i.tag == 'group':
+            for resources_in in i:
+                if resources_in.tag == 'primitive' and resources_in.attrib['type'] == 'Filesystem':
+                    fs_counter += 1
+                    xml_string = ET.tostring(resources_in, encoding='UTF-8', method='xml')
+                    dict_xml = xmltodict.parse(xml_string)
+                    fs_issues_operation[dict_xml['primitive']['@id']]=[]
+                    #print(dict_xml['primitive']['@id'])
+                    fs_device = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "device"), None)
+                    fs_directory = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "directory"), None)
+                    fs_fstype = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "fstype"), None)
+                    #print(type(dict_xml['primitive']['operations']['op']))
+                    fs_operation = dict_xml['primitive']['operations']['op']
+                    fs_config[dict_xml['primitive']['@id']]={}
+                    config_dict = {'device_name': fs_device['@value'] , 'mount_name': fs_directory['@value'], 'fs_type': fs_fstype['@value']}
+                    fs_config[dict_xml['primitive']['@id']].update(config_dict)
+                    try:
+                        if fs_operation['@interval'] != '10s':
+                             fs_issues_operation[dict_xml['primitive']['@id']].append(fs_operation)
+                             #print(fs_issues_operation)
+                    except (TypeError, AttributeError) as e:
+                        fs_issues_operation[dict_xml['primitive']['@id']].append(f"exception: {traceback.format_exc()}")
+                
+                elif resources_in.tag == 'primitive' and resources_in.attrib['type'] == 'exportfs':
+                    exports_counter += 1
+                    xml_string = ET.tostring(resources_in, encoding='UTF-8', method='xml')
+                    dict_xml = xmltodict.parse(xml_string)
+                    exports_issues_operation[dict_xml['primitive']['@id']]=[]
+                    exports_device = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "directory"), None)
+                    exports_options = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "options"), None)
+                    exports_specs = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "clientspec"), None)
+                    exports_fsid = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "fsid"), None)
+                    exports_wait_for_leasetime_on_stop = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "wait_for_leasetime_on_stop"), None)
+                    
+                    exports_config[dict_xml['primitive']['@id']]={}
+                    exports_config_dict = {'share_name': exports_device['@value'], 'allowed_network':exports_specs['@value'], 'export_options': exports_options['@value'], 
+                    'exports_fsid': exports_fsid['@value'], 'wait_for_leasetime_on_stop': exports_wait_for_leasetime_on_stop['@value']}
+                    exports_config[dict_xml['primitive']['@id']].update(exports_config_dict)
+
+                    #checking operation part
+                    exports_operation = dict_xml['primitive']['operations']['op']
+                    try:
+                        if exports_operation['@interval'] != '30s':
+                             exports_issues_operation[dict_xml['primitive']['@id']].append(exports_operation)
+                             #print(fs_issues_operation)
+                    except (TypeError, AttributeError) as e:
+                        exports_issues_operation[dict_xml['primitive']['@id']].append(f"exception: {traceback.format_exc()}")
+                
+                elif resources_in.tag == 'primitive' and (resources_in.attrib['type'] == 'anything' or resources_in.attrib['type'] == 'azure-lb' ):
+                    xml_string = ET.tostring(resources_in, encoding='UTF-8', method='xml')
+                    dict_xml = xmltodict.parse(xml_string)
+                    lb_issues_operation[dict_xml['primitive']['@id']]=[]
+                    if resources_in.attrib['type'] == 'anything':
+                        lb_counter_anything += 1
+                        logger.info('Customer is using socat or nc for load balancer probing')
+                        lb_binfile = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "binfile"), None)
+                        lb_cmdline = next((item for item in dict_xml['primitive']['instance_attributes']['nvpair'] if item["@name"] == "cmdline_options"), None)
+                        logger.info(f'cusotmer is using command {lb_binfile["@value"]} with the following options {lb_cmdline["@value"]} for azure load balancer probing')
+                        socat_nc = 1
+                    elif resources_in.attrib['type'] == 'azure-lb':
+                        lb_counter_azure += 1
+                        logger.info(f'Customer has {lb_counter_azure} resources is using azure-lb for load balancer probing')
+                        azure_lb = 1
+                        
+
+
+    print(f'Customer has {counter} drbd resources and the names of the resources are {list(issues_config.keys())}') 
+    print(f'Customer has {counter} file system resources and the configuration of the resources are {json.dumps(fs_config, indent=4)}') 
+    print(f'Customer has {counter} exports resources and the configuration of the resources are {json.dumps(exports_config, indent=4)}') 
+    if socat_nc:
+        print(f'cusotmer has {lb_counter_anything} resource using command {lb_binfile["@value"]} with the following options {lb_cmdline["@value"]} for azure load balancer probing')
+    if azure_lb:
+        print(f'Customer has {lb_counter_azure} resources is using azure-lb for load balancer probing')
+    #print(len(issues_config.values()))
+    if any(issues_config.values()):
+        logger.info(f'Cluster drbd configuration has below issues {issues_config}')
+        print('\033[93m' + f'Cluster drbd configuration has below issues {issues_config}' + '\033[0m')     
+    
+    if any(issues_operation.values()):
+        logger.info(f'Cluster drbd operation has below issues {issues_operation}')
+        print('\033[93m' + f'Cluster drbd operation has below issues {issues_operation}' + '\033[0m')
+    
+    if any(fs_issues_operation.values()):
+        logger.info(f'Cluster file system  operation has below issues {fs_issues_operation}')
+        print('\033[93m' + f'Cluster file system operation has below issues {fs_issues_operation}' + '\033[0m')
+    
+    if any(exports_issues_operation.values()):
+        logger.info(f'Cluster exports operation has below issues {exports_issues_operation}')
+        print('\033[93m' + f'Cluster exports operation has below issues {exports_issues_operation}' + '\033[0m')
+#            for j in i:
+#                if j.tag == 'meta_attributes':
+#                    logger.info('Checking on the metadata of the drbd')
+
+
 def getClusterType(root_xml):
     cluster_resources = root_xml[2]
     logger.info(cluster_resources)
@@ -564,6 +733,7 @@ def getClusterType(root_xml):
 
     for i in cluster_resources:
         if i.attrib['id'].find('SAPHana') != -1:
+            cluster_type="SAPCluster"
             SAPHanaChecker(i)
         
         elif i.attrib['id'].find('ASCS') != -1 or i.attrib['id'].find('ERS') != -1:
@@ -573,7 +743,14 @@ def getClusterType(root_xml):
                 ASCSGroupChecker(i)
             elif i.attrib['id'].find('ERS') != -1:
                 ERSGroupChecker(i)
-                                                              
+
+        elif i.tag == 'clone' and i[0].attrib['type'] == 'nfs-server':
+            cluster_type = "NFS"
+            logger.info('Customer has NFS cluster')
+            print('Customer has NFS cluster')
+            logger.info('Calling nfs cluster checker function, and passing to it the full list of resources')
+            nfsChecker(cluster_resources)
+            
 
 if __name__ == '__main__':
     raw_args = sys.argv
@@ -587,18 +764,26 @@ if __name__ == '__main__':
         else:
             path_to_scc = raw_args[1]
             break
-    
+    if path_to_scc.find('.txz') != -1:
+        logger.info('This is a compressed file, extracting it')
+        print('Extracting scc report ...')
+        extract_file = 'tar xf '+path_to_scc
+        output = subprocess.Popen([extract_file], stdout=subprocess.PIPE, shell=True)
+        logger.info(output.communicate())
+        path_to_scc = path_to_scc.split('.')[0]
+        logger.info(f'Path to scc is {path_to_scc}')
     #sr_num = collect_sr()
     logger.info(path_to_scc)
     #log_case_scc(sr_num, path_to_scc)
     if checkFileExistance(path_to_scc):
         version_id = osVersion(path_to_scc)
-        root_xml = readingCib(path_to_scc)
-        azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
-        getClusterType(root_xml)
-        totemChecker(path_to_scc)
-        quorumChecker(path_to_scc)
-        rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
+        readingCib(path_to_scc)
+        #root_xml = readingCib(path_to_scc)
+        #azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
+        #getClusterType(root_xml)
+        #totemChecker(path_to_scc)
+        #quorumChecker(path_to_scc)
+        #rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
         
 
 
