@@ -778,12 +778,12 @@ if __name__ == '__main__':
     if checkFileExistance(path_to_scc):
         version_id = osVersion(path_to_scc)
         readingCib(path_to_scc)
-        #root_xml = readingCib(path_to_scc)
-        #azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
-        #getClusterType(root_xml)
-        #totemChecker(path_to_scc)
-        #quorumChecker(path_to_scc)
-        #rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
+        root_xml = readingCib(path_to_scc)
+        azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
+        getClusterType(root_xml)
+        totemChecker(path_to_scc)
+        quorumChecker(path_to_scc)
+        rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
         
 
 
