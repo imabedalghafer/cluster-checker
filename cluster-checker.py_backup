@@ -244,7 +244,6 @@ def readingCib(path_to_scc):
     path_to_ha = path_to_scc + '/ha.txt'
     get_generate_cib_command = "sed -ne '/^\# \/var\/lib\/pacemaker\/cib\/cib.xml$/{:a' -e 'n;p;ba' -e '}' " + path_to_ha + " | sed '1,/\#==/!d' | grep -v '#==' > ./cib.xml"
     output = subprocess.run([get_generate_cib_command], stdout=subprocess.PIPE, shell=True)
-    
     #logger.info(str(output.communicate()))
     path_to_xml = 'cib.xml'
     parser = etree.XMLParser(recover=True)
@@ -310,171 +309,97 @@ def SAPHanaChecker(resources):
     #    logger.info('Customer have SAP hana cluster')
     #    print('Customer have SAP hana cluster')
     cluster_type='SAPHana'
-    issues_config = {}
-    #if i.attrib['id'].find('Topology') != -1:
-    if 'clone' in dict_xml.keys() and dict_xml['clone']['@id'].find('Topology') != -1:
-        issues_config[dict_xml['clone']['@id']] = []
+    if i.attrib['id'].find('Topology') != -1:
+        issues_dict = {}
         logger.info('Customer have SAP hana cluster')
         print('Customer have SAP hana cluster')
         printed=True
-        #logger.info(i.attrib['id'])
-        logger.info(dict_xml['clone']['@id'])
+        logger.info(i.attrib['id'])
         logger.info('Checking on the topology resource metadata as per our documentation')
-        #logger.info(i[0])
-        #issues_dict['topology_metadata']={}
-        #issues_dict['topology_operation']={}
-        clone_node_max_dict = next((item for item in dict_xml['clone']['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
-        interleave_dict = next((item for item in dict_xml['clone']['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
-        try:
-            if clone_node_max_dict['@value'] != '1':
-                issues_config[dict_xml['clone']['@id']].append(clone_node_max_dict)
-            if interleave_dict['@value'] != 'true':
-                issues_config[dict_xml['clone']['@id']].append(interleave_dict)
-        except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['clone']['@id']].append(f"exception: {traceback.format_exc()}")
-
-       # for j in i[0]:
-       #     logger.info(j.attrib['name'])
-       #     if j.attrib['name'] == 'clone-node-max' and j.attrib['value'] != "1":
-       #         issues_dict['topology_metadata'].update({'clone-node-max' : j.attrib['value']})
-       #     elif j.attrib['name'] == 'interleave' and j.attrib['value'] != 'true':
-       #         issues_dict['topology_metadata'].update({'interleave' : j.attrib['value']})
+        logger.info(i[0])
+        issues_dict['topology_metadata']={}
+        issues_dict['topology_operation']={}
+        for j in i[0]:
+            logger.info(j.attrib['name'])
+            if j.attrib['name'] == 'clone-node-max' and j.attrib['value'] != "1":
+                issues_dict['topology_metadata'].update({'clone-node-max' : j.attrib['value']})
+            elif j.attrib['name'] == 'interleave' and j.attrib['value'] != 'true':
+                issues_dict['topology_metadata'].update({'interleave' : j.attrib['value']})
         logger.info('Checking on the permittive on SAP Topology')
-        logger.info(dict_xml['clone']['primitive']['operations']['op'])
-        #logger.info(i[1].attrib['type'])
-        monitor_dict = next((item for item in dict_xml['clone']['primitive']['operations']['op'] if item["@name"] == "monitor"), None)
-        start_dict = next((item for item in dict_xml['clone']['primitive']['operations']['op'] if item["@name"] == "start"), None)
-        stop_dict = next((item for item in dict_xml['clone']['primitive']['operations']['op'] if item["@name"] == "stop"), None)
-        try:
-            if monitor_dict['@interval'] != '10' or monitor_dict['@timeout'] != '600':
-                issues_config[dict_xml['clone']['@id']].append(monitor_dict)
-            if start_dict['@interval'] != '0' or start_dict['@timeout'] != '600':
-                issues_config[dict_xml['clone']['@id']].append(start_dict)
-            if stop_dict['@interval'] != '0' or stop_dict['@timeout'] != '300':
-                issues_config[dict_xml['clone']['@id']].append(stop_dict)
-        except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['clone']['@id']].append(f"exception: {traceback.format_exc()}")
-        #for j in i[1][0]:
-        #    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != "10" or j.attrib['timeout'] != "600"):
-        #            issues_dict['topology_operation'].update({'monitor' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
-        #    if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "600"):
-        #        issues_dict['topology_operation'].update({'start' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
-        #    if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "300"):
-        #        issues_dict['topology_operation'].update({'stop' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
-        if any(issues_config.values()):
-            logger.info(f'SAP topology has issues below {issues_config}')
-            print('\033[93m' + f'SAP topology has issues below {issues_config}' + '\033[0m')     
-            print('\033[93m' + 'Please refer to documentation for the suggested values of timeout and interval: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources' + '\033[0m')
-        #if issues_dict['topology_metadata'] or issues_dict['topology_operation']:
-        #    logger.info(f'SAP topology has issues below {issues_dict}')
-        #    print(f'SAP topology has issues below {issues_dict}')
+        logger.info(i[1].attrib['id'])
+        logger.info(i[1].attrib['type'])
+        for j in i[1][0]:
+            if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != "10" or j.attrib['timeout'] != "600"):
+                    issues_dict['topology_operation'].update({'monitor' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "600"):
+                issues_dict['topology_operation'].update({'start' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "300"):
+                issues_dict['topology_operation'].update({'stop' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+        
+        if issues_dict['topology_metadata'] or issues_dict['topology_operation']:
+            logger.info(f'SAP topology has issues below {issues_dict}')
+            print(f'SAP topology has issues below {issues_dict}')
             
 
-    #elif i.attrib['id'].find('SAPHana') != -1 and i.attrib['id'].find('Topology') == -1:
-    elif 'master' in dict_xml.keys() and dict_xml['master']['@id'].find('SAPHana') != -1:
-        issues_config[dict_xml['master']['@id']] = []
+    elif i.attrib['id'].find('SAPHana') != -1 and i.attrib['id'].find('Topology') == -1:
+        issues_dict = {}
         #if not printed:
         #    logger.info('Customer have SAP hana cluster')
         #    print('Customer have SAP hana cluster')
-        logger.info(dict_xml['master']['@id'])
+        logger.info(i.attrib['id'])
         logger.info('Checking on the SAP resource as per our documentation')
-        #issues_dict['Hana_metadata']={}
-        #issues_dict['Hana_operation']={}
-        #issues_dict['Hana_instance_attributes']={}
-        #logger.info(i[0])
-        is_managed_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "is-managed"), None)
-        notify_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "notify"), None)
-        clone_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "clone-max"), None)
-        clone_node_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
-        interleave_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
-        try:
-            if is_managed_dict['@value'] != 'true':
-                issues_config[dict_xml['master']['@id']].append(is_managed_dict)
-            if clone_max_dict['@value'] != '2':
-                issues_config[dict_xml['master']['@id']].append(clone_max_dict)
-            if clone_node_max_dict['@value'] != '1':
-                issues_config[dict_xml['master']['@id']].append(clone_node_max_dict)
-            if notify_dict['@value'] != 'true':
-                issues_config[dict_xml['master']['@id']].append(notify_dict)
-            if interleave_dict['@value'] != 'true':
-                issues_config[dict_xml['master']['@id']].append(interleave_dict)
-        except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['master']['@id']].append(f"exception: {traceback.format_exc()}")
-
-        #for j in i[0]:
-        #    logger.info(j.attrib['name'])
-        #    if j.attrib['name'] == 'clone-node-max' and j.attrib['value'] != "1":
-        #        issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
-        #    elif j.attrib['name'] == 'interleave' and j.attrib['value'] != 'true':
-        #        issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
-        #    elif j.attrib['name'] == 'is-managed' and j.attrib['value'] != 'true':
-        #        issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
-        #    elif j.attrib['name'] == 'notify' and j.attrib['value'] != 'true':
-        #        issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
-        #    elif j.attrib['name'] == 'clone-max' and j.attrib['value'] != '2':
-        #        issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})                
+        issues_dict['Hana_metadata']={}
+        issues_dict['Hana_operation']={}
+        issues_dict['Hana_instance_attributes']={}
+        logger.info(i[0])
+        for j in i[0]:
+            logger.info(j.attrib['name'])
+            if j.attrib['name'] == 'clone-node-max' and j.attrib['value'] != "1":
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'interleave' and j.attrib['value'] != 'true':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'is-managed' and j.attrib['value'] != 'true':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'notify' and j.attrib['value'] != 'true':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})
+            elif j.attrib['name'] == 'clone-max' and j.attrib['value'] != '2':
+                issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})                
         
         logger.info('Checking on the permittive of SAP Hana')
-        logger.info(dict_xml['master']['primitive']['operations']['op'])
-        master_monitor = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Master'), None)
-        slave_monitor = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Slave'), None)
-        start_dict = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "start"), None)
-        stop_dict = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "stop"), None)
-        promote_dict = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "promote"), None)
-        try:
-            if master_monitor['@name'] == 'monitor' and master_monitor['@role'] == 'Master' and (master_monitor['@interval'] != "60" or master_monitor['@timeout'] != "700"):
-                issues_config[dict_xml['master']['@id']].append(master_monitor)
-            if slave_monitor['@name'] == 'monitor' and slave_monitor['@role'] == 'Slave' and (slave_monitor['@interval'] != "61" or slave_monitor['@timeout'] != "700"):
-                issues_config[dict_xml['master']['@id']].append(slave_monitor)
-            if start_dict['@name'] == 'start' and (start_dict['@interval'] != "0" or start_dict['@timeout'] != "3600"):
-                issues_config[dict_xml['master']['@id']].append(start_dict)
-            if stop_dict['@name'] == 'stop' and (stop_dict['@interval'] != "0" or stop_dict['@timeout'] != "3600"):
-                issues_config[dict_xml['master']['@id']].append(stop_dict)
-            if promote_dict['@name'] == 'promote' and (promote_dict['@interval'] != "0" or promote_dict['@timeout'] != "3600"):
-                issues_config[dict_xml['master']['@id']].append(promote_dict)
-        except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['master']['@id']].append(f"exception: {traceback.format_exc()}")
-        #logger.info(i[1].attrib['id'])
-        #logger.info(i[1].attrib['type'])
-        #for j in i[1][0]:
-        #    if j.attrib['name'] == 'monitor' and j.attrib['role'] == 'Master' and (j.attrib['interval'] != "60" or j.attrib['timeout'] != "700"):
-        #        issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
-        #    if j.attrib['name'] == 'monitor' and j.attrib['role'] == 'Slave' and (j.attrib['interval'] != "61" or j.attrib['timeout'] != "700"):
-        #        issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
-        #    if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
-        #        issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
-        #    if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
-        #        issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
-        #    if j.attrib['name'] == 'promote' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
-        #        issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+        logger.info(i[1].attrib['id'])
+        logger.info(i[1].attrib['type'])
+        for j in i[1][0]:
+            if j.attrib['name'] == 'monitor' and j.attrib['role'] == 'Master' and (j.attrib['interval'] != "60" or j.attrib['timeout'] != "700"):
+                    issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'monitor' and j.attrib['role'] == 'Slave' and (j.attrib['interval'] != "61" or j.attrib['timeout'] != "700"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'start' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'stop' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
+            if j.attrib['name'] == 'promote' and (j.attrib['interval'] != "0" or j.attrib['timeout'] != "3600"):
+                issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
         
         logger.info('Checking on the instance_attributes of SAP Hana')
-        logger.info(dict_xml['master']['primitive']['instance_attributes'])
-        temp_dict={}
-        for j in dict_xml['master']['primitive']['instance_attributes']['nvpair']:
-            if j['@name'] == 'PREFER_SITE_TAKEOVER' and j['@value'] != 'true':
-                temp_dict[j['@name']] = j['@value']
-                issues_config[dict_xml['master']['@id']].append(temp_dict)
-            if j['@name'] == 'DUPLICATE_PRIMARY_TIMEOUT' and j['@value'] != '7200':
-                temp_dict[j['@name']] = j['@value']
-                issues_config[dict_xml['master']['@id']].append(temp_dict)
-            if j['@name'] == 'SID':
-                sid = j['@value']
-            if j['@name'] == 'InstanceNumber':
-                instanceNumber = j['@value']
-            if j['@name'] == 'AUTOMATED_REGISTER':
-                auto_register = j['@value']
+        logger.info(i[1][1].attrib['id'])
+        for j in i[1][1]:
+            if j.attrib['name'] == 'PREFER_SITE_TAKEOVER' and j.attrib['value'] != 'true':
+                issues_dict['Hana_instance_attributes'].update({j.attrib['name'] : j.attrib['value']})
+            if j.attrib['name'] == 'DUPLICATE_PRIMARY_TIMEOUT' and j.attrib['value'] != '7200':
+                issues_dict['Hana_instance_attributes'].update({j.attrib['name'] : j.attrib['value']})
+            if j.attrib['name'] == 'SID':
+                sid = j.attrib['value']
+            if j.attrib['name'] == 'InstanceNumber':
+                instanceNumber = j.attrib['value']
+            if j.attrib['name'] == 'AUTOMATED_REGISTER':
+                auto_register = j.attrib['value']
         
-        logger.info(f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is' + '\033[93m' + f' {auto_register}' + '\033[0m')
-        print(f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is' + '\033[93m' + f' {auto_register}' + '\033[0m')
+        logger.info('\033[93m' + f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is {auto_register}' + '\033[0m')
+        print('\033[93m' + f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is {auto_register}' + '\033[0m')
 
-        #if issues_dict['Hana_metadata'] or issues_dict['Hana_operation']:
-        if any(issues_config.values()):
-            logger.info(f'SAP Hana has issues below {issues_config}')
-            print('\033[93m' + f'SAP Hana has issues below {issues_config}' + '\033[0m')     
-            print('\033[93m' + 'Please refer to documentation for the suggested values of timeout and interval: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources' + '\033[0m')
-            #logger.info(f'SAP Hana has issues below {issues_config}')
-            #print(f'SAP Hana has issues below {issues_config}')
+        if issues_dict['Hana_metadata'] or issues_dict['Hana_operation']:
+            logger.info(f'SAP Hana has issues below {issues_dict}')
+            print(f'SAP Hana has issues below {issues_dict}')
 
 def ASCSGroupChecker(resources):
     i = resources
