@@ -256,7 +256,6 @@ def readingCib(path_to_scc):
     #return dict_xml
     return mycib.getroot()[0]
     
-    #logger.info(mycib.getroot()[0].attrib)
 
 def propertyChecker(root_xml):
     root = root_xml
@@ -837,6 +836,20 @@ def constrainsChecker(root_xml, cluster_type):
         xml_string = ET.tostring(cluster_contrains, encoding='UTF-8', method='xml')
         dict_xml = xmltodict.parse(xml_string)
         logger.info('Start checking on the constrains')
+        logger.info('Checking on location constraints if they have cli-prefer and point them out')
+        location_constraints = dict_xml['constraints']['rsc_location']
+        logger.info(location_constraints)
+        if type(location_constraints) is list:
+            if len(location_constraints) >= 1:
+                for i in location_constraints:
+                    if i['@id'].find('cli-prefer') != -1:
+                        logger.info(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+                        print(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+        else:
+            if location_constraints['@id'].find('cli-prefer') != -1:
+                logger.info(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+                print(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+                
         logger.info(f'Determining the type of cluster {cluster_type}')
         if cluster_type == 'SAPCluster':
             logger.info(dict_xml)
@@ -848,6 +861,9 @@ def constrainsChecker(root_xml, cluster_type):
                 logger.info(f'Colocation constraints have issue {colocation_constraint}')
                 print('Checking on colocaiton constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources')
                 print(f'Colocation constraints has the following incorrect configuration {colocation_constraint}')
+            else:
+                logger.info(f'No issues found on the colocation constraints of id {colocation_constraint["@id"]}')
+                print(f'No issues found on the colocation constraints of id {colocation_constraint["@id"]}')
             
             logger.info('checking on the order constrains')
             order_constraint = dict_xml['constraints']['rsc_order']
@@ -856,6 +872,9 @@ def constrainsChecker(root_xml, cluster_type):
                 logger.info(f'order constraints have issue {order_constraint}')
                 print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources')
                 print(f'order constraints has the following incorrect configuration {order_constraint}')
+            else:
+                logger.info(f'No issues found on the order constraints of id {order_constraint["@id"]}')
+                print(f'No issues found on the order constraints of id {order_constraint["@id"]}')
 
         elif cluster_type == 'ASCSERS':
             logger.info(dict_xml)
@@ -866,6 +885,10 @@ def constrainsChecker(root_xml, cluster_type):
                 logger.info(f'Colocation constraints have issue {colocation_constraint}')
                 print('Checking on colocaiton constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse#installing-sap-netweaver-ascsers')
                 print(f'Colocation constraints has the following incorrect configuration {colocation_constraint}')
+            else:
+                logger.info(f'No issues found on the colocation constraints of id {colocation_constraint["@id"]}')
+                print(f'No issues found on the colocation constraints of id {colocation_constraint["@id"]}')
+
             logger.info('checking on the order constrains')
             order_constraint = dict_xml['constraints']['rsc_order']
             if(order_constraint['@kind'] != 'Optional' or order_constraint['@symmetrical'] != 'false'
@@ -874,8 +897,13 @@ def constrainsChecker(root_xml, cluster_type):
                 logger.info(f'order constraints have issue {order_constraint}')
                 print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse#installing-sap-netweaver-ascsers')
                 print(f'order constraints has the following incorrect configuration {order_constraint}')
+            else:
+                logger.info(f'No issues found on the order constraints of id {order_constraint["@id"]}')
+                print(f'No issues found on the order constraints of id {order_constraint["@id"]}')
+
             logger.info('checking on the location constrains')
             logger.info('As per doc update, there could be no location constrains configured for new version of SAP, so confirming that this location constrains is not CLI related')
+            print('Please check if there is a location constrains configured (does not have cli-prefer in its name) in case customer using old ASCS/ERS infra, as the new version does not require this locaion constraint')
             # to do to add the location constraints checker
             #location_constraints = dict_xml['constraints']['rsc_location']
             #if location_constraints['@id'].find('cli-prefer') == -1:
@@ -883,10 +911,59 @@ def constrainsChecker(root_xml, cluster_type):
             #    if ():
         elif cluster_type == 'NFS':
             logger.info(dict_xml)
-
-    except (TypeError, AttributeError) as e:
+            logger.info('Checking on colocation constraints')
+            colocation_constraint = dict_xml['constraints']['rsc_colocation']
+            #logger.warning(type(colocation_constraint) )
+            #logger.info(type(colocation_constraint) is list)
+            if isinstance(colocation_constraint, list):
+                if len(colocation_constraint) >=1:
+                    for i in colocation_constraint:
+                        if(i['@score'] != 'INFINITY' or i['@rsc'].find('g-') == -1 
+                            or i['@with-rsc'].find('ms-drbd') == -1 or i['@with-rsc-role'] != 'Master'):
+                            logger.info(f'Colocation constraints have issue {i}')
+                            print('Checking on colocaiton constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-nfs#configure-cluster-framework')
+                            print(f'Colocation constraints has the following incorrect configuration {i}')
+                        else:
+                            logger.info(f'No issues found on the colocation constraints of id {i["@id"]}')
+                            print(f'No issues found on the colocation constraints of id {i["@id"]}')
+            else:
+                if(colocation_constraint['@score'] != 'INFINITY' or colocation_constraint['@rsc'].find('g-') == -1 
+                            or colocation_constraint['@with-rsc'].find('ms-drbd') == -1 or colocation_constraint['@with-rsc-role'] != 'Master'):
+                    logger.info(f'Colocation constraints have issue {colocation_constraint}')
+                    print('Checking on colocaiton constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-nfs#configure-cluster-framework')
+                    print(f'Colocation constraints has the following incorrect configuration {colocation_constraint}')
+                else:
+                    logger.info(f'No issues found on the colocation constraints of id {colocation_constraint["@id"]}')
+                    print(f'No issues found on the colocation constraints of id {colocation_constraint["@id"]}')
+                
+            logger.info('checking on the order constrains')
+            order_constraint = dict_xml['constraints']['rsc_order']
+            if type(order_constraint) is list:
+                if len(order_constraint) >=1:
+                    for i in order_constraint:
+                        if(i['@kind'] != 'Mandatory'
+                            or (i['@first'].find('ms-drbd') == -1 and i['@first-action'] != 'promote')
+                            or (i['@then'].find('g-') == -1 and i['@then-action'] != 'start')):
+                            logger.info(f'order constraints have issue {i}')
+                            print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-nfs#configure-cluster-framework')
+                            print(f'order constraints has the following incorrect configuration {i}')
+                        else:
+                            logger.info(f'No issues found on the order constraints of id {i["@id"]}')
+                            print(f'No issues found on the order constraints of id {i["@id"]}')
+            else:
+                if(order_constraint['@kind'] != 'Mandatory'
+                            or (order_constraint['@first'].find('ms-drbd') == -1 and order_constraint['@first-action'] != 'promote')
+                            or (order_constraint['@then'].find('g-') == -1 and order_constraint['@then-action'] != 'start')):
+                    logger.info(f'order constraints have issue {order_constraint}')
+                    print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-nfs#configure-cluster-framework')
+                    print(f'order constraints has the following incorrect configuration {order_constraint}')
+                else:
+                    logger.info(f'No issues found on the order constraints of id {order_constraint["@id"]}')
+                    print(f'No issues found on the order constraints of id {order_constraint["@id"]}')
+        
+    except (TypeError, AttributeError, KeyError) as e:
         print('\033[91m' + 'There was an exception on checking on the constrains, please check on that manually as there could be some comments on the configration that causing this issue' + '\033[0m')
-        #print(f'exception:{traceback.format_exc()}')
+        logger.warning(f'exception:{traceback.format_exc()}')
 
 
 if __name__ == '__main__':
@@ -920,8 +997,8 @@ if __name__ == '__main__':
         cluster_type = getClusterType(root_xml)
         constrainsChecker(root_xml, cluster_type)
         totemChecker(path_to_scc)
-        #quorumChecker(path_to_scc)
-        #rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
+        quorumChecker(path_to_scc)
+        rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
         
 
 
