@@ -828,7 +828,66 @@ def getClusterType(root_xml):
             print('Customer has NFS cluster')
             logger.info('Calling nfs cluster checker function, and passing to it the full list of resources')
             nfsChecker(cluster_resources)
+
+    return cluster_type
+
+def constrainsChecker(root_xml, cluster_type):
+    cluster_contrains = root_xml[3]
+    try:
+        xml_string = ET.tostring(cluster_contrains, encoding='UTF-8', method='xml')
+        dict_xml = xmltodict.parse(xml_string)
+        logger.info('Start checking on the constrains')
+        logger.info(f'Determining the type of cluster {cluster_type}')
+        if cluster_type == 'SAPCluster':
+            logger.info(dict_xml)
+            logger.info('Checking on colocation constraint')
+            colocation_constraint = dict_xml['constraints']['rsc_colocation']
+            if (colocation_constraint['@score'] != '4000' or 
+                (colocation_constraint['@rsc'].find('g_') == -1 and colocation_constraint['@rsc-role'] != 'Started')
+                or (colocation_constraint['@with-rsc'].find('msl_') == -1 and colocation_constraint['@with-rsc-role'] != 'Master')):
+                logger.info(f'Colocation constraints have issue {colocation_constraint}')
+                print('Checking on colocaiton constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources')
+                print(f'Colocation constraints has the following incorrect configuration {colocation_constraint}')
             
+            logger.info('checking on the order constrains')
+            order_constraint = dict_xml['constraints']['rsc_order']
+            if (order_constraint['@kind'] != 'Optional' or order_constraint['@first'].find('cln_') == -1 
+            or order_constraint['@then'].find('msl_') == -1):
+                logger.info(f'order constraints have issue {order_constraint}')
+                print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources')
+                print(f'order constraints has the following incorrect configuration {order_constraint}')
+
+        elif cluster_type == 'ASCSERS':
+            logger.info(dict_xml)
+            logger.info('Checking on colocation constraints')
+            colocation_constraint = dict_xml['constraints']['rsc_colocation']
+            if(colocation_constraint['@score'] != '-5000' or colocation_constraint['@rsc'].find('ERS') == -1 
+                or colocation_constraint['@with-rsc'].find('ASC') == -1):
+                logger.info(f'Colocation constraints have issue {colocation_constraint}')
+                print('Checking on colocaiton constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse#installing-sap-netweaver-ascsers')
+                print(f'Colocation constraints has the following incorrect configuration {colocation_constraint}')
+            logger.info('checking on the order constrains')
+            order_constraint = dict_xml['constraints']['rsc_order']
+            if(order_constraint['@kind'] != 'Optional' or order_constraint['@symmetrical'] != 'false'
+                or (order_constraint['@first'].find('ASCS') == -1 and order_constraint['@first-action'] != 'start')
+                or (order_constraint['@then'].find('ERS') == -1 and order_constraint['@then-action'] != 'stop')):
+                logger.info(f'order constraints have issue {order_constraint}')
+                print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse#installing-sap-netweaver-ascsers')
+                print(f'order constraints has the following incorrect configuration {order_constraint}')
+            logger.info('checking on the location constrains')
+            logger.info('As per doc update, there could be no location constrains configured for new version of SAP, so confirming that this location constrains is not CLI related')
+            # to do to add the location constraints checker
+            #location_constraints = dict_xml['constraints']['rsc_location']
+            #if location_constraints['@id'].find('cli-prefer') == -1:
+            #    logger.info('This location constrains is not CLI related')
+            #    if ():
+        elif cluster_type == 'NFS':
+            logger.info(dict_xml)
+
+    except (TypeError, AttributeError) as e:
+        print('\033[91m' + 'There was an exception on checking on the constrains, please check on that manually as there could be some comments on the configration that causing this issue' + '\033[0m')
+        #print(f'exception:{traceback.format_exc()}')
+
 
 if __name__ == '__main__':
     raw_args = sys.argv
@@ -858,10 +917,11 @@ if __name__ == '__main__':
         readingCib(path_to_scc)
         root_xml = readingCib(path_to_scc)
         azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
-        getClusterType(root_xml)
+        cluster_type = getClusterType(root_xml)
+        constrainsChecker(root_xml, cluster_type)
         totemChecker(path_to_scc)
-        quorumChecker(path_to_scc)
-        rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
+        #quorumChecker(path_to_scc)
+        #rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
         
 
 
