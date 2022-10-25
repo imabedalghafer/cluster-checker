@@ -14,7 +14,7 @@ https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-avail
     - in case of azure fence agent, check the packages version of python-azure-core, python-azure-mgmt-compute and python-azure-identity
 - check on the resource definition and parameters as per our documentation and print if there is any differences for manual checking
 - check on the version of resource-agents package and fence-agents package
-# test comment
+
 """
 
 import os
