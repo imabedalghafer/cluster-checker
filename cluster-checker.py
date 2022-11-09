@@ -946,8 +946,7 @@ def constrainsChecker(root_xml, cluster_type):
             if type(order_constraint) is list:
                 if len(order_constraint) >=1:
                     for i in order_constraint:
-                        if(i['@kind'] != 'Mandatory'
-                            or (i['@first'].find('ms-drbd') == -1 and i['@first-action'] != 'promote')
+                        if((i['@first'].find('ms-drbd') == -1 and i['@first-action'] != 'promote')
                             or (i['@then'].find('g-') == -1 and i['@then-action'] != 'start')):
                             logger.info(f'order constraints have issue {i}')
                             print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-nfs#configure-cluster-framework')
@@ -956,8 +955,7 @@ def constrainsChecker(root_xml, cluster_type):
                             logger.info(f'No issues found on the order constraints of id {i["@id"]}')
                             print(f'No issues found on the order constraints of id {i["@id"]}')
             else:
-                if(order_constraint['@kind'] != 'Mandatory'
-                            or (order_constraint['@first'].find('ms-drbd') == -1 and order_constraint['@first-action'] != 'promote')
+                if((order_constraint['@first'].find('ms-drbd') == -1 and order_constraint['@first-action'] != 'promote')
                             or (order_constraint['@then'].find('g-') == -1 and order_constraint['@then-action'] != 'start')):
                     logger.info(f'order constraints have issue {order_constraint}')
                     print('Checking on order constraints, and we found that it is not following our documentation: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-suse-nfs#configure-cluster-framework')
@@ -972,7 +970,7 @@ def constrainsChecker(root_xml, cluster_type):
 
 
 if __name__ == '__main__':
-    VERSION = '1.7.1'
+    VERSION = '1.7.2'
     print(f'Tool version is {VERSION}')
     print('Checking if the this is the latest version')
     URL = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt'
