@@ -989,7 +989,7 @@ if __name__ == '__main__':
         copy_command = f'cp {new_file_name} cluster-checker.py'
         output = subprocess.run([copy_command], stdout=subprocess.PIPE, shell=True)
         print('Done updating, please try to execute the script again')
-    exit()
+        exit()
     raw_args = sys.argv
     while True:
         if len(raw_args) <= 1 :
