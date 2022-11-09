@@ -27,6 +27,7 @@ import ast
 import traceback
 import xmltodict
 import json
+import requests
 #from telemtry import collect_sr, log_case_scc
 
 f_handle = logging.FileHandler('./cluster-checker.log',mode='w')
@@ -971,6 +972,24 @@ def constrainsChecker(root_xml, cluster_type):
 
 
 if __name__ == '__main__':
+    VERSION = '1.7'
+    print(f'you are running on version {VERSION}')
+    print('Checking if the this is the latest version')
+    URL = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt'
+    re = requests.get(URL)
+    logger.info(re.text)
+    if re.text == VERSION:
+        print('Using the latest version, no further action needed')
+    else:
+        print(f'The latest version available is {re.text}, updating ..')
+        URL_1 = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/cluster-checker.py'
+        download_file = requests.get(URL_1)
+        new_file_name = f'cluster-checker-{re.text}.py'
+        open(new_file_name, "wb").write(download_file.content)
+        copy_command = f'cp {new_file_name} cluster-checker.py'
+        output = subprocess.run([copy_command], stdout=subprocess.PIPE, shell=True)
+        print('Done updating, please try to execute the script again')
+    exit()
     raw_args = sys.argv
     while True:
         if len(raw_args) <= 1 :
