@@ -838,6 +838,9 @@ def constrainsChecker(root_xml, cluster_type):
         dict_xml = xmltodict.parse(xml_string)
         logger.info('Start checking on the constrains')
         logger.info('Checking on location constraints if they have cli-prefer and point them out')
+        logger.info(dict_xml['constraints'])
+        logger.info(dict_xml['constraints'].keys())
+        logger.info(dict_xml['constraints'].values())
         location_constraints = dict_xml['constraints']['rsc_location']
         logger.info(location_constraints)
         if type(location_constraints) is list:
@@ -848,8 +851,8 @@ def constrainsChecker(root_xml, cluster_type):
                         print(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
         else:
             if location_constraints['@id'].find('cli-prefer') != -1:
-                logger.info(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
-                print(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+                logger.info(f'below constraint {location_constraints["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+                print(f'below constraint {location_constraints["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
                 
         logger.info(f'Determining the type of cluster {cluster_type}')
         if cluster_type == 'SAPCluster':
