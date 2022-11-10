@@ -364,8 +364,8 @@ def SAPHanaChecker(resources):
         #        issues_dict['topology_operation'].update({'stop' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
         if any(issues_config.values()):
             logger.info(f'SAP topology has issues below {issues_config}')
-            print('\033[93m' + f'SAP topology has issues below {issues_config}' + '\033[0m')     
-            print('\033[93m' + 'Please refer to documentation for the suggested values of timeout and interval: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources' + '\033[0m')
+            print('\033[33m' + f'SAP topology has issues below {issues_config}' + '\033[0m')     
+            print('\033[33m' + 'Please refer to documentation for the suggested values of timeout and interval: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources' + '\033[0m')
         #if issues_dict['topology_metadata'] or issues_dict['topology_operation']:
         #    logger.info(f'SAP topology has issues below {issues_dict}')
         #    print(f'SAP topology has issues below {issues_dict}')
@@ -389,8 +389,10 @@ def SAPHanaChecker(resources):
         clone_node_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
         interleave_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
         try:
-            if is_managed_dict['@value'] != 'true':
-                issues_config[dict_xml['master']['@id']].append(is_managed_dict)
+            # For Managed property it was removed with pacemaker config 3-x this need to check if any of those parameters is not none based on previous output
+            if is_managed_dict != None: # checking on it as the default value is true, if not set. If set we need to ensure it is true , otherwise we should mark it as error https://clusterlabs.org/pacemaker/doc/deprecated/en-US/Pacemaker/1.1/html/Pacemaker_Explained/s-resource-options.html
+                if is_managed_dict['@value'] != 'true':
+                    issues_config[dict_xml['master']['@id']].append(is_managed_dict)
             if clone_max_dict['@value'] != '2':
                 issues_config[dict_xml['master']['@id']].append(clone_max_dict)
             if clone_node_max_dict['@value'] != '1':
@@ -466,14 +468,14 @@ def SAPHanaChecker(resources):
             if j['@name'] == 'AUTOMATED_REGISTER':
                 auto_register = j['@value']
         
-        logger.info(f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is' + '\033[93m' + f' {auto_register}' + '\033[0m')
-        print(f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is' + '\033[93m' + f' {auto_register}' + '\033[0m')
+        logger.info(f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is' + '\033[33m' + f' {auto_register}' + '\033[0m')
+        print(f'Customer has database of name {sid} and instance number {instanceNumber}, please also note that the vaule for AUTOMATED_REGISTER is' + '\033[33m' + f' {auto_register}' + '\033[0m')
 
         #if issues_dict['Hana_metadata'] or issues_dict['Hana_operation']:
         if any(issues_config.values()):
             logger.info(f'SAP Hana has issues below {issues_config}')
-            print('\033[93m' + f'SAP Hana has issues below {issues_config}' + '\033[0m')     
-            print('\033[93m' + 'Please refer to documentation for the suggested values of timeout and interval: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources' + '\033[0m')
+            print('\033[33m' + f'SAP Hana has issues below {issues_config}' + '\033[0m')     
+            print('\033[33m' + 'Please refer to documentation for the suggested values of timeout and interval: https://learn.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability#create-sap-hana-cluster-resources' + '\033[0m')
             #logger.info(f'SAP Hana has issues below {issues_config}')
             #print(f'SAP Hana has issues below {issues_config}')
 
@@ -499,8 +501,8 @@ def ASCSGroupChecker(resources):
                         mountpoint=j.attrib['value']
                     elif j.attrib['name'] == 'fstype':
                         fstype=j.attrib['value']
-                logger.info('\033[93m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
-                print('\033[93m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                logger.info('\033[33m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                print('\033[33m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
                 logger.info('Checking file system operation parameters:')
                 for j in resource[1]:
                     if j.attrib['name'] == 'monitor' and (j.attrib['interval'].find('20') == -1 or j.attrib['timeout'].find('40') == -1 ):
@@ -522,8 +524,8 @@ def ASCSGroupChecker(resources):
                             command = j.attrib['value']
                         if j.attrib['name'] == 'cmdline_options':
                             options = j.attrib['value']
-                    logger.info('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
-                    print('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
+                    logger.info('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
+                    print('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
                     fs_issues['socat_operations']={}
                     if resource[1][0].attrib['name'] == 'monitor' and (resource[1][0].attrib['interval'].find('10') == -1 or resource[1][0].attrib['timeout'].find('20') == -1 ):
                         fs_issues['socat_operations'].update({resource[1][0].attrib['name'] : { 'interval': resource[1][0].attrib['interval'] , 'timeout' : resource[1][0].attrib['timeout'] }})
@@ -581,8 +583,8 @@ def ERSGroupChecker(resources):
                         mountpoint=j.attrib['value']
                     elif j.attrib['name'] == 'fstype':
                         fstype=j.attrib['value']
-                logger.info('\033[93m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
-                print('\033[93m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                logger.info('\033[33m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                print('\033[33m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
                 logger.info('Checking file system operation parameters:')
                 for j in resource[1]:
                     if j.attrib['name'] == 'monitor' and (j.attrib['interval'].find('20') == -1 or j.attrib['timeout'].find('40') == -1 ):
@@ -604,8 +606,8 @@ def ERSGroupChecker(resources):
                             command = j.attrib['value']
                         if j.attrib['name'] == 'cmdline_options':
                             options = j.attrib['value']
-                    logger.info('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
-                    print('\033[93m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
+                    logger.info('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
+                    print('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
                     fs_issues['socat_operations']={}
                     if resource[1][0].attrib['name'] == 'monitor' and (resource[1][0].attrib['interval'].find('10') == -1 or resource[1][0].attrib['timeout'].find('20') == -1 ):
                         fs_issues['socat_operations'].update({resource[1][0].attrib['name'] : { 'interval': resource[1][0].attrib['interval'] , 'timeout' : resource[1][0].attrib['timeout'] }})
@@ -785,19 +787,19 @@ def nfsChecker(resources):
     #print(len(issues_config.values()))
     if any(issues_config.values()):
         logger.info(f'Cluster drbd configuration has below issues {issues_config}')
-        print('\033[93m' + f'Cluster drbd configuration has below issues {issues_config}' + '\033[0m')     
+        print('\033[33m' + f'Cluster drbd configuration has below issues {issues_config}' + '\033[0m')     
     
     if any(issues_operation.values()):
         logger.info(f'Cluster drbd operation has below issues {issues_operation}')
-        print('\033[93m' + f'Cluster drbd operation has below issues {issues_operation}' + '\033[0m')
+        print('\033[33m' + f'Cluster drbd operation has below issues {issues_operation}' + '\033[0m')
     
     if any(fs_issues_operation.values()):
         logger.info(f'Cluster file system  operation has below issues {fs_issues_operation}')
-        print('\033[93m' + f'Cluster file system operation has below issues {fs_issues_operation}' + '\033[0m')
+        print('\033[33m' + f'Cluster file system operation has below issues {fs_issues_operation}' + '\033[0m')
     
     if any(exports_issues_operation.values()):
         logger.info(f'Cluster exports operation has below issues {exports_issues_operation}')
-        print('\033[93m' + f'Cluster exports operation has below issues {exports_issues_operation}' + '\033[0m')
+        print('\033[33m' + f'Cluster exports operation has below issues {exports_issues_operation}' + '\033[0m')
 #            for j in i:
 #                if j.tag == 'meta_attributes':
 #                    logger.info('Checking on the metadata of the drbd')
@@ -970,7 +972,7 @@ def constrainsChecker(root_xml, cluster_type):
 
 
 if __name__ == '__main__':
-    VERSION = '1.7.2'
+    VERSION = '1.7.3'
     print(f'Tool version is {VERSION}')
     print('Checking if the this is the latest version')
     URL = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt'
