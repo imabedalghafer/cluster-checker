@@ -844,18 +844,20 @@ def constrainsChecker(root_xml, cluster_type):
         logger.info(dict_xml['constraints'])
         logger.info(dict_xml['constraints'].keys())
         logger.info(dict_xml['constraints'].values())
-        location_constraints = dict_xml['constraints']['rsc_location']
-        logger.info(location_constraints)
-        if type(location_constraints) is list:
-            if len(location_constraints) >= 1:
-                for i in location_constraints:
-                    if i['@id'].find('cli-prefer') != -1:
-                        logger.info(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
-                        print(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
-        else:
-            if location_constraints['@id'].find('cli-prefer') != -1:
-                logger.info(f'below constraint {location_constraints["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
-                print(f'below constraint {location_constraints["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+        # adding the below condition to check if in first place we have location constraints or not, if yes then we can proceed with checking, otherweise we can skip to reduce the exceptions thrown.
+        if 'rsc_location' in dict_xml['constraints']:
+            location_constraints = dict_xml['constraints']['rsc_location']
+            logger.info(location_constraints)
+            if type(location_constraints) is list:
+                if len(location_constraints) >= 1:
+                    for i in location_constraints:
+                        if i['@id'].find('cli-prefer') != -1:
+                            logger.info(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+                            print(f'below constraint {i["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+            else:
+                if location_constraints['@id'].find('cli-prefer') != -1:
+                    logger.info(f'below constraint {location_constraints["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
+                    print(f'below constraint {location_constraints["@id"]} was created from crm cli, please check if this contribute to the issue you are investgating')
                 
         logger.info(f'Determining the type of cluster {cluster_type}')
         if cluster_type == 'SAPCluster':
@@ -972,7 +974,7 @@ def constrainsChecker(root_xml, cluster_type):
 
 
 if __name__ == '__main__':
-    VERSION = '1.7.3'
+    VERSION = '1.7.4'
     print(f'Tool version is {VERSION}')
     print('Checking if the this is the latest version')
     URL = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt'
