@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo 'preparing python3 virtual env to install into it the requirements.txt file'
-echo "in case you don't have python3 installed on your wsl, you can either install it or use WSL of ubuntu 20.04"
 prepareVenv()
 {   
     echo 'virtual environment of python package avaible, creating a new dev environment and install requirements on it'
@@ -11,6 +9,24 @@ prepareVenv()
     dev/bin/pip install opencensus lxml xmltodict
     echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
 }
+
+echo 'preparing python3 virtual env to install into it the requirements.txt file'
+echo "in case you don't have python3 installed on your wsl, you can either install it or use WSL of ubuntu 20.04"
+VERSION='1.7.4'
+echo "Using script of version $VERSION"
+echo "Verifing if an update required .."
+remote_version = $(curl https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt)
+if [ $VERSION == $remote_version ]
+then
+    echo 'You are on latest version proceeding'
+else
+    echo 'Starting an update ...'
+    $(curl --output prepare-$remote_version.sh https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/prepare.sh)
+    cp prepare-$remote_version.sh prepare.sh
+    echo 'Done updating, please run script again'
+    exit()
+fi
+
 
 if [ -f /bin/yum ]
 then
