@@ -19,20 +19,20 @@ then
     rpm -qa | grep virtualenv
     if [ $? -eq 0 ]
     then
-        prepareVenv()
+        prepareVenv
     else
         echo 'Installing the python3 venv module, usually the package name is python3-virtualenv'
         sudo yum install -y python3-virtualenv
         if [ $? -eq 0 ]
         then
             echo "Done installing the package, we will prepare the virtual environment"
-            prepareVenv()
+            prepareVenv
         else
             echo 'trying to install using pip'
             sudo yum install -y python3-pip
             pip3 install -y virtualenv
             echo 'Done installing via pip, preparing the venv'
-            prepareVenv()
+            prepareVenv
         fi
     fi
 elif [ -f /bin/apt ]
@@ -42,20 +42,20 @@ then
     apt list --installed | grep venv
     if [ $? -eq 0 ]
     then
-        prepareVenv()
+        prepareVenv
     else
         echo 'Installing the python3 venv module usually its name is python3-venv'
         sudo apt-get install -y python3-venv
         if [ $? -eq 0 ]
         then
             echo "Done installing the package, we will prepare the virtual environment"
-            prepareVenv()
+            prepareVenv
         else
             echo 'trying to install using pip'
             sudo apt-get install -y python3-pip
             pip3 install -y virtualenv
             echo 'Done installing via pip, preparing the venv'
-            prepareVenv()
+            prepareVenv
         fi
     fi
 fi
