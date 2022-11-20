@@ -24,7 +24,7 @@ else
     $(curl --output prepare-$remote_version.sh https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/prepare.sh)
     cp prepare-$remote_version.sh prepare.sh
     echo 'Done updating, please run script again'
-    exit()
+    exit
 fi
 
 
