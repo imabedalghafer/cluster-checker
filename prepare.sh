@@ -18,6 +18,18 @@ then
     else
         echo 'Installing the python3 venv module, usually the package name is python3-virtualenv'
         sudo yum install -y python3-virtualenv
+        if [ $? -eq 0 ]
+        then
+            echo "Done installing the package, we will prepare the virtual environment"
+            echo 'virtual environment of python package avaible, creating a new dev environment and install requirements on it'
+            python3 -m venv dev
+            source dev/bin/activate
+            dev/bin/pip install --upgrade pip
+            dev/bin/pip install opencensus lxml xmltodict
+            echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
+        else
+            echo 'Please ensure to install the python3-virtualenv on your machine'
+        fi
     fi
 elif [ -f /bin/apt ]
 then
@@ -35,5 +47,17 @@ then
     else
         echo 'Installing the python3 venv module usually its name is python3-venv'
         sudo apt-get install -y python3-venv
+        if [ $? -eq 0 ]
+        then
+            echo "Done installing the package, we will prepare the virtual environment"
+            echo 'virtual environment of python package avaible, creating a new dev environment and install requirements on it'
+            python3 -m venv dev
+            source dev/bin/activate
+            dev/bin/pip install --upgrade pip
+            dev/bin/pip install opencensus lxml xmltodict
+            echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
+        else
+            echo 'Please ensure to install the python3-virtualenv on your machine'
+        fi
     fi
 fi
