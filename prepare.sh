@@ -15,7 +15,7 @@ echo "in case you don't have python3 installed on your wsl, you can either insta
 VERSION='1.7.4'
 echo "Using script of version $VERSION"
 echo "Verifing if an update required .."
-remote_version = $(curl https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt)
+remote_version=$(curl https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt)
 if [ $VERSION == $remote_version ]
 then
     echo 'You are on latest version proceeding'
