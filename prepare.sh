@@ -16,7 +16,8 @@ then
         dev/bin/pip install opencensus lxml xmltodict
         echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
     else
-        echo 'Please install the python3 venv module, usually the package name is python3-virtualenv'
+        echo 'Installing the python3 venv module, usually the package name is python3-virtualenv'
+        sudo yum install -y python3-virtualenv
     fi
 elif [ -f /bin/apt ]
 then
@@ -32,6 +33,7 @@ then
         dev/bin/pip install opencensus lxml xmltodict
         echo 'Ready to go, please ensure to activate the dev before you run the script, to activate it use source dev/bin/activate'
     else
-        echo 'Please install the python3 venv module usually its name is python3.X-venv'
+        echo 'Installing the python3 venv module usually its name is python3-venv'
+        sudo apt-get install -y python3-venv
     fi
 fi
