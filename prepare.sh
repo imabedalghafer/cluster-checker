@@ -30,7 +30,7 @@ then
         else
             echo 'trying to install using pip'
             sudo yum install -y python3-pip
-            pip3 install -y virtualenv
+            pip3 install virtualenv
             echo 'Done installing via pip, preparing the venv'
             prepareVenv
         fi
@@ -53,7 +53,7 @@ then
         else
             echo 'trying to install using pip'
             sudo apt-get install -y python3-pip
-            pip3 install -y virtualenv
+            pip3 install virtualenv
             echo 'Done installing via pip, preparing the venv'
             prepareVenv
         fi
