@@ -28,6 +28,7 @@ import traceback
 import xmltodict
 import json
 import requests
+import re
 #from telemtry import collect_sr, log_case_scc
 
 f_handle = logging.FileHandler('./cluster-checker.log',mode='w')
@@ -59,7 +60,6 @@ def checkFileExistance(path_to_scc):
         return True
     return False
 
-
 def totemChecker(path_to_scc):
     path_to_ha = path_to_scc + '/ha.txt'
     totem_cmd = 'grep  -A 18 "totem" ' + path_to_ha
@@ -73,7 +73,7 @@ def totemChecker(path_to_scc):
     totem_config = totem_config.replace('\tmcastport','mcastport')
     totem_config = totem_config.replace('\tttl','ttl')
     totem_config = totem_config.replace('\n}\n','\n\t}')
-    totem_config = totem_config.split('\n\t')
+    totem_config = re.split('\n(\t| )+',totem_config)
     logger.info(totem_config)
     totem_config_dict = dict()
     for i in totem_config:
@@ -125,7 +125,7 @@ def quorumChecker(path_to_scc):
     logger.info(f'Quorum configuration is: {quorum_config}')
     quorum_config = quorum_config.replace('b\'quorum', '\'')
     quorum_config = ast.literal_eval(quorum_config)
-    quorum_config = quorum_config.split('\n\t')
+    quorum_config = re.split('\n(\t| )+',quorum_config)
     quorum_config_dict = dict()
     for i in quorum_config:
         if i.find(':') != -1:
@@ -978,15 +978,15 @@ if __name__ == '__main__':
     print(f'Tool version is {VERSION}')
     print('Checking if the this is the latest version')
     URL = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt'
-    re = requests.get(URL)
-    logger.info(re.text)
-    if re.text == VERSION:
+    myrequest = requests.get(URL)
+    logger.info(myrequest.text)
+    if myrequest.text == VERSION:
         print('Using the latest version, no further action needed, proceeding with execution')
     else:
-        print(f'The latest version available is {re.text}, updating ..')
+        print(f'The latest version available is {myrequest.text}, updating ..')
         URL_1 = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/cluster-checker.py'
         download_file = requests.get(URL_1)
-        new_file_name = f'cluster-checker-{re.text}.py'
+        new_file_name = f'cluster-checker-{myrequest.text}.py'
         open(new_file_name, "wb").write(download_file.content)
         copy_command = f'cp {new_file_name} cluster-checker.py'
         output = subprocess.run([copy_command], stdout=subprocess.PIPE, shell=True)
