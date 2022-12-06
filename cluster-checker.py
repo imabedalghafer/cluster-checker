@@ -974,7 +974,7 @@ def constrainsChecker(root_xml, cluster_type):
 
 
 if __name__ == '__main__':
-    VERSION = '1.7.4'
+    VERSION = '1.7.5'
     print(f'Tool version is {VERSION}')
     print('Checking if the this is the latest version')
     URL = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt'
