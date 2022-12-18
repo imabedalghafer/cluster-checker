@@ -1278,10 +1278,10 @@ if __name__ == '__main__':
         root_xml = readingCib(path_to_scc)
         azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
         cluster_type = getClusterType(root_xml)
-        #constrainsChecker(root_xml, cluster_type)
-        #totemChecker(path_to_scc)
-        #quorumChecker(path_to_scc)
-        #rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
+        constrainsChecker(root_xml, cluster_type)
+        totemChecker(path_to_scc)
+        quorumChecker(path_to_scc)
+        rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
         
 
 
