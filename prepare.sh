@@ -12,7 +12,7 @@ prepareVenv()
 
 echo 'preparing python3 virtual env to install into it the requirements.txt file'
 echo "in case you don't have python3 installed on your wsl, you can either install it or use WSL of ubuntu 20.04"
-VERSION='1.7.5'
+VERSION='1.9.6'
 echo "Using script of version $VERSION"
 echo "Verifing if an update required .."
 remote_version=$(curl https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt 2> /dev/null)

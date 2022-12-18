@@ -304,35 +304,60 @@ def SAPHanaChecker(resources):
     i = resources
     xml_string = ET.tostring(i, encoding='UTF-8', method='xml')
     dict_xml = xmltodict.parse(xml_string)
+    dict_xml_topology = {} # topology dictinary
+    dict_xml_db = {} # DB dictinary
+    logger.info('Determining the variables names for DB resource and Topology resource')
+    #print(dict_xml)
+    #print(dict_xml['resources'].keys())
+    #exit()
+    for res in list(dict_xml['resources'].keys()):
+        if res == 'master':
+            if type(dict_xml['resources']['master']) is list:
+                for z in dict_xml['resources']['master']:
+                    if z['@id'].find('SAPHana') != -1:
+                        dict_xml_db = z
+            elif type(dict_xml['resources']['master']) is not list:
+                dict_xml_db = dict_xml['resources']['master']
+    
+        if res == 'clone':
+            if type(dict_xml['resources']['clone']) is list:
+                for z in dict_xml['resources']['clone']:
+                    if z['@id'].find('SAPHana') != -1:
+                        dict_xml_topology = z
+            elif type(dict_xml['resources']['clone']) is not list:
+                dict_xml_topology = dict_xml['resources']['clone']
+
     printed=False
     #logger.info(i.attrib['id'])
-    logger.info(dict_xml)
+    logger.info(dict_xml_topology)
+    logger.info(dict_xml_db)
     #if i.attrib['id'].find('Topology') == -1:
     #    logger.info('Customer have SAP hana cluster')
     #    print('Customer have SAP hana cluster')
     cluster_type='SAPHana'
     issues_config = {}
     #if i.attrib['id'].find('Topology') != -1:
-    if 'clone' in dict_xml.keys() and dict_xml['clone']['@id'].find('Topology') != -1:
-        issues_config[dict_xml['clone']['@id']] = []
+    if dict_xml_topology is not None:
+    #if 'clone' in dict_xml.keys() and dict_xml_topology['@id'].find('Topology') != -1:
+        issues_config[dict_xml_topology['@id']] = []
         logger.info('Customer have SAP hana cluster')
         print('Customer have SAP hana cluster')
         printed=True
         #logger.info(i.attrib['id'])
-        logger.info(dict_xml['clone']['@id'])
+        logger.info(dict_xml_topology['@id'])
         logger.info('Checking on the topology resource metadata as per our documentation')
         #logger.info(i[0])
         #issues_dict['topology_metadata']={}
         #issues_dict['topology_operation']={}
-        clone_node_max_dict = next((item for item in dict_xml['clone']['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
-        interleave_dict = next((item for item in dict_xml['clone']['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
+        clone_node_max_dict = next((item for item in dict_xml_topology['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
+        interleave_dict = next((item for item in dict_xml_topology['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
         try:
             if clone_node_max_dict['@value'] != '1':
-                issues_config[dict_xml['clone']['@id']].append(clone_node_max_dict)
+                issues_config[dict_xml_topology['@id']].append(clone_node_max_dict)
             if interleave_dict['@value'] != 'true':
-                issues_config[dict_xml['clone']['@id']].append(interleave_dict)
+                issues_config[dict_xml_topology['@id']].append(interleave_dict)
         except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['clone']['@id']].append(f"exception: {traceback.format_exc()}")
+            issues_config[dict_xml_topology['@id']].append(f"exception: {traceback.format_exc()}")
 
        # for j in i[0]:
        #     logger.info(j.attrib['name'])
@@ -341,20 +366,20 @@ def SAPHanaChecker(resources):
        #     elif j.attrib['name'] == 'interleave' and j.attrib['value'] != 'true':
        #         issues_dict['topology_metadata'].update({'interleave' : j.attrib['value']})
         logger.info('Checking on the permittive on SAP Topology')
-        logger.info(dict_xml['clone']['primitive']['operations']['op'])
+        logger.info(dict_xml_topology['primitive']['operations']['op'])
         #logger.info(i[1].attrib['type'])
-        monitor_dict = next((item for item in dict_xml['clone']['primitive']['operations']['op'] if item["@name"] == "monitor"), None)
-        start_dict = next((item for item in dict_xml['clone']['primitive']['operations']['op'] if item["@name"] == "start"), None)
-        stop_dict = next((item for item in dict_xml['clone']['primitive']['operations']['op'] if item["@name"] == "stop"), None)
+        monitor_dict = next((item for item in dict_xml_topology['primitive']['operations']['op'] if item["@name"] == "monitor"), None)
+        start_dict = next((item for item in dict_xml_topology['primitive']['operations']['op'] if item["@name"] == "start"), None)
+        stop_dict = next((item for item in dict_xml_topology['primitive']['operations']['op'] if item["@name"] == "stop"), None)
         try:
             if monitor_dict['@interval'] != '10' or monitor_dict['@timeout'] != '600':
-                issues_config[dict_xml['clone']['@id']].append(monitor_dict)
+                issues_config[dict_xml_topology['@id']].append(monitor_dict)
             if start_dict['@interval'] != '0' or start_dict['@timeout'] != '600':
-                issues_config[dict_xml['clone']['@id']].append(start_dict)
+                issues_config[dict_xml_topology['@id']].append(start_dict)
             if stop_dict['@interval'] != '0' or stop_dict['@timeout'] != '300':
-                issues_config[dict_xml['clone']['@id']].append(stop_dict)
+                issues_config[dict_xml_topology['@id']].append(stop_dict)
         except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['clone']['@id']].append(f"exception: {traceback.format_exc()}")
+            issues_config[dict_xml_topology['@id']].append(f"exception: {traceback.format_exc()}")
         #for j in i[1][0]:
         #    if j.attrib['name'] == 'monitor' and (j.attrib['interval'] != "10" or j.attrib['timeout'] != "600"):
         #            issues_dict['topology_operation'].update({'monitor' : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
@@ -372,37 +397,38 @@ def SAPHanaChecker(resources):
             
 
     #elif i.attrib['id'].find('SAPHana') != -1 and i.attrib['id'].find('Topology') == -1:
-    elif 'master' in dict_xml.keys() and dict_xml['master']['@id'].find('SAPHana') != -1:
-        issues_config[dict_xml['master']['@id']] = []
+    if dict_xml_db is not None:
+    #elif 'master' in dict_xml.keys() and dict_xml_db['@id'].find('SAPHana') != -1:
+        issues_config[dict_xml_db['@id']] = []
         #if not printed:
         #    logger.info('Customer have SAP hana cluster')
         #    print('Customer have SAP hana cluster')
-        logger.info(dict_xml['master']['@id'])
+        logger.info(dict_xml_db['@id'])
         logger.info('Checking on the SAP resource as per our documentation')
         #issues_dict['Hana_metadata']={}
         #issues_dict['Hana_operation']={}
         #issues_dict['Hana_instance_attributes']={}
         #logger.info(i[0])
-        is_managed_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "is-managed"), None)
-        notify_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "notify"), None)
-        clone_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "clone-max"), None)
-        clone_node_max_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
-        interleave_dict = next((item for item in dict_xml['master']['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
+        is_managed_dict = next((item for item in dict_xml_db['meta_attributes']['nvpair'] if item["@name"] == "is-managed"), None)
+        notify_dict = next((item for item in dict_xml_db['meta_attributes']['nvpair'] if item["@name"] == "notify"), None)
+        clone_max_dict = next((item for item in dict_xml_db['meta_attributes']['nvpair'] if item["@name"] == "clone-max"), None)
+        clone_node_max_dict = next((item for item in dict_xml_db['meta_attributes']['nvpair'] if item["@name"] == "clone-node-max"), None)
+        interleave_dict = next((item for item in dict_xml_db['meta_attributes']['nvpair'] if item["@name"] == "interleave"), None)
         try:
             # For Managed property it was removed with pacemaker config 3-x this need to check if any of those parameters is not none based on previous output
             if is_managed_dict != None: # checking on it as the default value is true, if not set. If set we need to ensure it is true , otherwise we should mark it as error https://clusterlabs.org/pacemaker/doc/deprecated/en-US/Pacemaker/1.1/html/Pacemaker_Explained/s-resource-options.html
                 if is_managed_dict['@value'] != 'true':
-                    issues_config[dict_xml['master']['@id']].append(is_managed_dict)
+                    issues_config[dict_xml_db['@id']].append(is_managed_dict)
             if clone_max_dict['@value'] != '2':
-                issues_config[dict_xml['master']['@id']].append(clone_max_dict)
+                issues_config[dict_xml_db['@id']].append(clone_max_dict)
             if clone_node_max_dict['@value'] != '1':
-                issues_config[dict_xml['master']['@id']].append(clone_node_max_dict)
+                issues_config[dict_xml_db['@id']].append(clone_node_max_dict)
             if notify_dict['@value'] != 'true':
-                issues_config[dict_xml['master']['@id']].append(notify_dict)
+                issues_config[dict_xml_db['@id']].append(notify_dict)
             if interleave_dict['@value'] != 'true':
-                issues_config[dict_xml['master']['@id']].append(interleave_dict)
+                issues_config[dict_xml_db['@id']].append(interleave_dict)
         except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['master']['@id']].append(f"exception: {traceback.format_exc()}")
+            issues_config[dict_xml_db['@id']].append(f"exception: {traceback.format_exc()}")
 
         #for j in i[0]:
         #    logger.info(j.attrib['name'])
@@ -418,25 +444,25 @@ def SAPHanaChecker(resources):
         #        issues_dict['Hana_metadata'].update({j.attrib['name'] : j.attrib['value']})                
         
         logger.info('Checking on the permittive of SAP Hana')
-        logger.info(dict_xml['master']['primitive']['operations']['op'])
-        master_monitor = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Master'), None)
-        slave_monitor = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Slave'), None)
-        start_dict = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "start"), None)
-        stop_dict = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "stop"), None)
-        promote_dict = next((item for item in dict_xml['master']['primitive']['operations']['op'] if item["@name"] == "promote"), None)
+        logger.info(dict_xml_db['primitive']['operations']['op'])
+        master_monitor = next((item for item in dict_xml_db['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Master'), None)
+        slave_monitor = next((item for item in dict_xml_db['primitive']['operations']['op'] if item["@name"] == "monitor" and item['@role'] == 'Slave'), None)
+        start_dict = next((item for item in dict_xml_db['primitive']['operations']['op'] if item["@name"] == "start"), None)
+        stop_dict = next((item for item in dict_xml_db['primitive']['operations']['op'] if item["@name"] == "stop"), None)
+        promote_dict = next((item for item in dict_xml_db['primitive']['operations']['op'] if item["@name"] == "promote"), None)
         try:
             if master_monitor['@name'] == 'monitor' and master_monitor['@role'] == 'Master' and (master_monitor['@interval'] != "60" or master_monitor['@timeout'] != "700"):
-                issues_config[dict_xml['master']['@id']].append(master_monitor)
+                issues_config[dict_xml_db['@id']].append(master_monitor)
             if slave_monitor['@name'] == 'monitor' and slave_monitor['@role'] == 'Slave' and (slave_monitor['@interval'] != "61" or slave_monitor['@timeout'] != "700"):
-                issues_config[dict_xml['master']['@id']].append(slave_monitor)
+                issues_config[dict_xml_db['@id']].append(slave_monitor)
             if start_dict['@name'] == 'start' and (start_dict['@interval'] != "0" or start_dict['@timeout'] != "3600"):
-                issues_config[dict_xml['master']['@id']].append(start_dict)
+                issues_config[dict_xml_db['@id']].append(start_dict)
             if stop_dict['@name'] == 'stop' and (stop_dict['@interval'] != "0" or stop_dict['@timeout'] != "3600"):
-                issues_config[dict_xml['master']['@id']].append(stop_dict)
+                issues_config[dict_xml_db['@id']].append(stop_dict)
             if promote_dict['@name'] == 'promote' and (promote_dict['@interval'] != "0" or promote_dict['@timeout'] != "3600"):
-                issues_config[dict_xml['master']['@id']].append(promote_dict)
+                issues_config[dict_xml_db['@id']].append(promote_dict)
         except (TypeError, AttributeError) as e:
-            issues_config[dict_xml['master']['@id']].append(f"exception: {traceback.format_exc()}")
+            issues_config[dict_xml_db['@id']].append(f"exception: {traceback.format_exc()}")
         #logger.info(i[1].attrib['id'])
         #logger.info(i[1].attrib['type'])
         #for j in i[1][0]:
@@ -452,15 +478,15 @@ def SAPHanaChecker(resources):
         #        issues_dict['Hana_operation'].update({j.attrib['name'] : { 'interval': j.attrib['interval'] , 'timeout' : j.attrib['timeout'] }})
         
         logger.info('Checking on the instance_attributes of SAP Hana')
-        logger.info(dict_xml['master']['primitive']['instance_attributes'])
+        logger.info(dict_xml_db['primitive']['instance_attributes'])
         temp_dict={}
-        for j in dict_xml['master']['primitive']['instance_attributes']['nvpair']:
+        for j in dict_xml_db['primitive']['instance_attributes']['nvpair']:
             if j['@name'] == 'PREFER_SITE_TAKEOVER' and j['@value'] != 'true':
                 temp_dict[j['@name']] = j['@value']
-                issues_config[dict_xml['master']['@id']].append(temp_dict)
+                issues_config[dict_xml_db['@id']].append(temp_dict)
             if j['@name'] == 'DUPLICATE_PRIMARY_TIMEOUT' and j['@value'] != '7200':
                 temp_dict[j['@name']] = j['@value']
-                issues_config[dict_xml['master']['@id']].append(temp_dict)
+                issues_config[dict_xml_db['@id']].append(temp_dict)
             if j['@name'] == 'SID':
                 sid = j['@value']
             if j['@name'] == 'InstanceNumber':
@@ -482,10 +508,92 @@ def SAPHanaChecker(resources):
 def ASCSGroupChecker(resources):
     i = resources
     fs_issues={}
-    logger.info(i.attrib['id'])
+    logger.info(i['@id'])
     logger.info('Customer have ASCS/ERS cluster')
     print('Customer have ASCS/ERS cluster')
     logger.info('Start checking on the ASCS resource group')
+    primittives = i['primitive']
+    for resource in primittives:
+        if '@type' in resource.keys():
+            if resource['@type'] == 'Filesystem':
+                logger.info('Start checking on ASCS file system all details')
+                fs_issues['ascs_fs_operation']={}
+                logger.info(f'Resource name checking is {resource["@id"]}')
+                logger.info('Checking on instance_attributes')
+                for j in resource['instance_attributes']['nvpair']:
+                    if j['@name'] == 'device':
+                        device=j['@value']
+                    if j['@name'] == 'directory':
+                        mountpoint=j['@value']
+                    if j['@name'] == 'fstype':
+                        fstype=j['@value']
+
+                logger.info('\033[33m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                print('\033[33m' + f'ASCS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                logger.info('Checking file system operation parameters:')
+
+                for j in resource['operations']['op']:
+                    if j['@name'] == 'monitor' and (j['@interval'].find('20') == -1 or j['@timeout'].find('40') == -1 ):
+                        fs_issues['ascs_fs_operation'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+                    if j['@name'] == 'start' and (j['@interval'] != "0" or j['@timeout'].find('60') == -1):
+                        fs_issues['ascs_fs_operation'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+                    if j['@name'] == 'stop' and (j['@interval'] != "0" or j['@timeout'].find('60') == -1):
+                        fs_issues['ascs_fs_operation'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+
+                if fs_issues['ascs_fs_operation']:
+                    logger.info(f'ASCS file system resource has following issues {fs_issues}')
+                    print(f'ASCS file system resource has following issues {fs_issues}')
+
+            if resource['@type'] == 'anything' or resource['@type'] == 'azure-lb':
+                if resource['@type'] == 'anything':
+                    logger.info('Customer is using socat or nc for load balancer probing')
+                    for j in resource['instance_attributes']['nvpair']:
+                        if j['@name'] == 'binfile':
+                            command = j['@value']
+                        if j['@name'] == 'cmdline_options':
+                            options = j['@value']
+                    logger.info('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
+                    print('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ASCS'+'\033[0m')
+                    fs_issues['socat_operations']={}
+                    if resource['operations']['op']['@name'] == 'monitor' and (resource['operations']['op']['@interval'].find('10') == -1 or resource['operations']['op']['@timeout'].find('20') == -1 ):
+                        fs_issues['socat_operations'].update({resource['operations']['op']['@name'] : { 'interval': resource['operations']['op']['@interval'] , 'timeout' : resource['operations']['op']['@timeout'] }})
+                    
+                    if fs_issues['socat_operations']:
+                        logger.info(f'ASCS Azure lb has the following issues {fs_issues}')
+                        print(f'ASCS Azure lb has the following issues {fs_issues}') 
+
+                else:
+                    logger.info('Customer is using azure-lb')
+                    print('Customer is using azure-lb for load balancer probing') 
+            
+            if resource['@type'] == 'SAPInstance':
+                logger.info('Moving to check on the instance metadata information for ASCS')
+                for j in resource['instance_attributes']['nvpair']:
+                    if j['@name'] == 'InstanceName':
+                        instanceName=j['@value']
+                    if j['@name'] == 'START_PROFILE':
+                        startProfile=j['@value']
+                    if j['@name'] == 'AUTOMATIC_RECOVER':
+                        recoverState=j['@value']
+                logger.info(f'ASCS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState}')
+                print(f'ASCS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState}')
+
+                logger.info('Checking on ASCS resource and start with operations')
+                fs_issues['ascs_operations']={}
+                if type(resource['operations']['op']) is list:
+                    for j in resource['operations']['op']:
+                        if j['@name'] == 'monitor' and (j['@interval'] != '11' or j['@timeout'] != '60'  ):
+                            fs_issues['ascs_operations'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+                else:
+                    if resource['operations']['op']['@name'] == 'monitor' and (resource['operations']['op']['@interval'] != '11' or resource['operations']['op']['@timeout'] != '60'  ):
+                        fs_issues['ascs_operations'].update({resource['operations']['op']['@name'] : { 'interval': resource['operations']['op']['@interval'] , 'timeout' : resource['operations']['op']['@timeout'] }})                   
+                
+                if fs_issues['ascs_operations']:
+                    logger.info(f'ASCS resource has following issues on operations {fs_issues}')
+                    print(f'ASCS resource has following issues on operations {fs_issues}')
+
+
+'''
     for resource in i:
         if 'type' in resource.keys():
             #print(type(resource.attrib['type']))
@@ -559,15 +667,98 @@ def ASCSGroupChecker(resources):
                         recoverState=j.attrib['value']
                 logger.info(f'ASCS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState}')
                 print(f'ASCS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState}')
-
+'''
 
 def ERSGroupChecker(resources):
     i = resources
     fs_issues={}
-    logger.info(i.attrib['id'])
+    logger.info(i['@id'])
     logger.info('Customer have ASCS/ERS cluster')
     #print('Customer have ASCS/ERS cluster')
     logger.info('Start checking on the ERS resource group')
+    primittives = i['primitive']
+    for resource in primittives:
+        if '@type' in resource.keys():
+            if resource['@type'] == 'Filesystem':
+                logger.info('Start checking on ERS file system all details')
+                fs_issues['ers_fs_operations']={}
+                logger.info(f'Resource name checking is {resource["@id"]}')
+                logger.info('Checking on instance_attributes')
+                for j in resource['instance_attributes']['nvpair']:
+                    if j['@name'] == 'device':
+                        device=j['@value']
+                    if j['@name'] == 'directory':
+                        mountpoint=j['@value']
+                    if j['@name'] == 'fstype':
+                        fstype=j['@value']
+
+                logger.info('\033[33m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                print('\033[33m' + f'ERS file system is {fstype}, and the source device is {device} and mounted on {mountpoint}'+'\033[0m')
+                logger.info('Checking file system operation parameters:')
+
+                for j in resource['operations']['op']:
+                    if j['@name'] == 'monitor' and (j['@interval'].find('20') == -1 or j['@timeout'].find('40') == -1 ):
+                        fs_issues['ascs_fs_operation'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+                    if j['@name'] == 'start' and (j['@interval'] != "0" or j['@timeout'].find('60') == -1):
+                        fs_issues['ascs_fs_operation'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+                    if j['@name'] == 'stop' and (j['@interval'] != "0" or j['@timeout'].find('60') == -1):
+                        fs_issues['ascs_fs_operation'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+
+                if fs_issues['ers_fs_operations']:
+                    logger.info(f'ERS file system resource has following issues {fs_issues}')
+                    print(f'ERS file system resource has following issues {fs_issues}')
+                
+            if resource['@type'] == 'anything' or resource['@type'] == 'azure-lb':
+                if resource['@type'] == 'anything':
+                    logger.info('Customer is using socat or nc for load balancer probing')
+                    for j in resource['instance_attributes']['nvpair']:
+                        if j['@name'] == 'binfile':
+                            command = j['@value']
+                        if j['@name'] == 'cmdline_options':
+                            options = j['@value']
+                    logger.info('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
+                    print('\033[33m' + f'cusotmer is using command {command} with the following options {options} for azure load balancer probing for ERS'+'\033[0m')
+                    fs_issues['socat_operations']={}
+                    if resource['operations']['op']['@name'] == 'monitor' and (resource['operations']['op']['@interval'].find('10') == -1 or resource['operations']['op']['@timeout'].find('20') == -1 ):
+                        fs_issues['socat_operations'].update({resource['operations']['op']['@name'] : { 'interval': resource['operations']['op']['@interval'] , 'timeout' : resource['operations']['op']['@timeout'] }})
+                    
+                    if fs_issues['socat_operations']:
+                        logger.info(f'ERS Azure lb has the following issues {fs_issues}')
+                        print(f'ERS Azure lb has the following issues {fs_issues}') 
+
+                else:
+                    logger.info('Customer is using azure-lb')
+                    print('Customer is using azure-lb for load balancer probing') 
+                    
+            if resource['@type'] == 'SAPInstance':
+                logger.info('Moving to check on the instance metadata information for ERS')
+                for j in resource['instance_attributes']['nvpair']:
+                    if j['@name'] == 'InstanceName':
+                        instanceName=j['@value']
+                    if j['@name'] == 'START_PROFILE':
+                        startProfile=j['@value']
+                    if j['@name'] == 'AUTOMATIC_RECOVER':
+                        recoverState=j['@value']
+                    if j['@name'] == 'IS_ERS':
+                        isERS=j['@value']
+                logger.info(f'ERS instance name {instanceName} and the start profile is located under {startProfile} and automatic recover is set to {recoverState} and has IS_ERS set to {isERS}')
+                print(f'ERS instance name {instanceName} and the start profile is located under {startProfile} and automatic recover is set to {recoverState} and has IS_ERS set to {isERS}')
+
+                logger.info('Checking on ERS resource and start with operations')
+                fs_issues['ers_operations']={}
+                if type(resource['operations']['op']) is list:
+                    for j in resource['operations']['op']:
+                        if j['@name'] == 'monitor' and (j['@interval'] != '11' or j['@timeout'] != '60'  ):
+                            fs_issues['ers_operations'].update({j['@name'] : { 'interval': j['@interval'] , 'timeout' : j['@timeout'] }})
+                else:
+                    if resource['operations']['op']['@name'] == 'monitor' and (resource['operations']['op']['@interval'] != '11' or resource['operations']['op']['@timeout'] != '60'  ):
+                        fs_issues['ers_operations'].update({resource['operations']['op']['@name'] : { 'interval': resource['operations']['op']['@interval'] , 'timeout' : resource['operations']['op']['@timeout'] }})
+                
+                if fs_issues['ers_operations']:
+                    logger.info(f'ERS resource has following issues on operations {fs_issues}')
+                    print(f'ERS resource has following issues on operations {fs_issues}')
+
+'''
     for resource in i:
         if 'type' in resource.keys():
             #print(type(resource.attrib['type']))
@@ -643,7 +834,7 @@ def ERSGroupChecker(resources):
                         isERS=j.attrib['value']
                 logger.info(f'ERS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState} and has IS_ERS set to {isERS}')
                 print(f'ERS instance name {instanceName} amd the start profile is located under {startProfile} and automatic recover is set to {recoverState} and has IS_ERS set to {isERS}')
-
+'''
 
 def nfsChecker(resources):
     cluster_resources = resources
@@ -809,9 +1000,77 @@ def getClusterType(root_xml):
     cluster_resources = root_xml[2]
     logger.info(cluster_resources)
     cluster_type=""
+    xml_string = ET.tostring(cluster_resources, encoding='UTF-8', method='xml')
+    dict_xml = xmltodict.parse(xml_string)
+    #logger.info(dict_xml)
+    logger.info(dict_xml['resources'].keys())
+    
+    #['primitive', 'clone', 'master', 'group']
     #issues_dict = {}
     
+    #resources_types = list(dict_xml['resources'].keys())
+    #logger.info(dict_xml['resources']['master'])
+    #logger.info(dict_xml['resources']['master']['primitive']['@type'])
+    try:
+        for resource_type in list(dict_xml['resources'].keys()):
+            if resource_type == 'master':
+                if type(dict_xml['resources']['master']) is list:
+                    ### it is not supposed to have list of master resource in SAP hana resources but this loop to handle those situation in case the cluster had sap resource or other.
+                    for resource in dict_xml['resources']['master']:
+                        if (resource['@id'].find('SAPHana') != -1 or resource['primitive']['@type'] == 'SAPHana'):
+                            cluster_type="SAPCluster"
+                            #print(cluster_type)
+                            SAPHanaChecker(cluster_resources)
+                            ## once done no need to do further checking let's break here
+                            return cluster_type
+                elif type(dict_xml['resources']['master']) is not list and (dict_xml['resources']['master']['@id'].find('SAPHana') != -1 or dict_xml['resources']['master']['primitive']['@type'] == 'SAPHana'):
+                    cluster_type="SAPCluster"
+                    #print(cluster_type)
+                    SAPHanaChecker(cluster_resources)
+                    ## once done no need to do further checking let's break here
+                    return cluster_type
+            
+            if resource_type == 'clone':
+                if type(dict_xml['resources']['clone']) is list:
+                    # as resources such as azure-events are clone set so that we want to skip and move to nfs-server resource just in case it happens to be there.
+                    for resource in dict_xml['resources']['clone']:
+                        if resource['primitive']['@type'] == 'nfs-server':
+                            cluster_type = "NFS"
+                            logger.info('Customer has NFS cluster')
+                            print('Customer has NFS cluster')
+                            logger.info('Calling nfs cluster checker function, and passing to it the full list of resources')
+                            nfsChecker(cluster_resources)
+                            ## once done no need to do further checking let's break here
+                            return cluster_type
+                elif type(dict_xml['resources']['clone']) is not list and dict_xml['resources']['clone']['primitive']['@type'] == 'nfs-server':
+                    cluster_type = "NFS"
+                    logger.info('Customer has NFS cluster')
+                    print('Customer has NFS cluster')
+                    logger.info('Calling nfs cluster checker function, and passing to it the full list of resources')
+                    nfsChecker(cluster_resources)
+                    ## once done no need to do further checking let's break here
+                    return cluster_type
 
+            if resource_type == 'group':
+                #print(dict_xml['resources']['group'])
+                if type(dict_xml['resources']['group']) is list:
+                    for resource in dict_xml['resources']['group']:
+                        if resource['@id'].find('ASCS') != -1 or resource['@id'].find('ERS') != -1:
+                            logger.info(resource['@id'])
+                            cluster_type='ASCSERS'
+                            if resource['@id'].find('ASCS') != -1:
+                                logger.info(resource)
+                                ASCSGroupChecker(resource)
+                            if resource['@id'].find('ERS') != -1:
+                                logger.info(resource)
+                                ERSGroupChecker(resource)
+    
+    except Exception as e:
+        #print(dict_xml['resources']['master'])
+        print(traceback.format_exc())
+    
+    
+'''
     for i in cluster_resources:
         if i.attrib['id'].find('SAPHana') != -1:
             cluster_type="SAPCluster"
@@ -831,8 +1090,7 @@ def getClusterType(root_xml):
             print('Customer has NFS cluster')
             logger.info('Calling nfs cluster checker function, and passing to it the full list of resources')
             nfsChecker(cluster_resources)
-
-    return cluster_type
+'''   
 
 def constrainsChecker(root_xml, cluster_type):
     cluster_contrains = root_xml[3]
@@ -974,7 +1232,7 @@ def constrainsChecker(root_xml, cluster_type):
 
 
 if __name__ == '__main__':
-    VERSION = '1.7.5'
+    VERSION = '1.9.6'
     print(f'Tool version is {VERSION}')
     print('Checking if the this is the latest version')
     URL = 'https://raw.githubusercontent.com/imabedalghafer/cluster-checker/master/version.txt'
@@ -1020,10 +1278,10 @@ if __name__ == '__main__':
         root_xml = readingCib(path_to_scc)
         azure_fence_agent, sbd_fence_agent = propertyChecker(root_xml)
         cluster_type = getClusterType(root_xml)
-        constrainsChecker(root_xml, cluster_type)
-        totemChecker(path_to_scc)
-        quorumChecker(path_to_scc)
-        rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
+        #constrainsChecker(root_xml, cluster_type)
+        #totemChecker(path_to_scc)
+        #quorumChecker(path_to_scc)
+        #rpmChecker(path_to_scc, version_id, azure_fence_agent, sbd_fence_agent)
         
 
 
